@@ -14,7 +14,7 @@ not_found_handling = "single-page-application"
 [[d1_databases]]
 binding = "DB"
 database_name = "farasdanga-db"
-database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+database_id = "07475cdf-001a-4333-8572-2c7d51b9d8e2"
 
 # Secrets (set with `wrangler secret put NAME` — never write these in this file):
 #   ADMIN_PASSWORD          your admin login password
