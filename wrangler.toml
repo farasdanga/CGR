@@ -23,3 +23,13 @@ database_id = "07475cdf-001a-4333-8572-2c7d51b9d8e2"
 
 [vars]
 SITE_URL = "https://farasdanga.workers.dev"
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+invocation_logs = true
+persist = true
+
+[observability.traces]
+enabled = true
+head_sampling_rate = 1
+persist = true
