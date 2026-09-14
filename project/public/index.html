@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farasdanga — Free Local Service Directory</title>
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="48x48" href="/assets/favicon-48.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon-180.png">
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root{
+            --navy:#0B2A4A; --navy-light:#123a63; --marigold:#F3A93B; --marigold-dark:#DA8F1E;
+            --terracotta:#BB4E24; --river:#2E86AB; --leaf:#3F7D4C; --sky:#EAF4FB;
+            --paper:#FFFDF9; --ink:#1B2733; --ink-soft:#5B6B7A; --line:#E4E9EE;
+        }
+        *{box-sizing:border-box;}
+        body{
+            margin:0; font-family:'Inter',sans-serif; color:var(--ink); background:var(--paper);
+            overflow-x:hidden; -webkit-font-smoothing:antialiased;
+        }
+        h1,h2,h3,.display{ font-family:'Fraunces',serif; }
+        .container{ max-width:1180px; margin:0 auto; padding:0 20px; }
+        a{ color:inherit; }
+        button{ font-family:inherit; cursor:pointer; }
+
+        /* ---------- nav ---------- */
+        nav.top{
+            position:sticky; top:0; z-index:40; background:rgba(255,253,249,.92); backdrop-filter:blur(10px);
+            border-bottom:1px solid var(--line);
+        }
+        .nav-inner{ display:flex; align-items:center; justify-content:space-between; height:72px; }
+        .brand{ display:flex; align-items:center; gap:10px; cursor:pointer; }
+        .brand img{ height:42px; width:42px; border-radius:50%; object-fit:cover; box-shadow:0 2px 8px rgba(11,42,74,.18); }
+        .brand span{ font-family:'Fraunces',serif; font-weight:600; font-size:1.5rem; color:var(--navy); }
+        .nav-links{ display:flex; align-items:center; gap:28px; }
+        .nav-links a, .nav-links button.link{ background:none; border:none; font-weight:500; color:var(--ink); font-size:.97rem; position:relative; padding:4px 0; }
+        .nav-links a::after, .nav-links button.link::after{
+            content:''; position:absolute; left:0; bottom:-2px; width:0; height:2px; background:var(--marigold); transition:width .25s ease;
+        }
+        .nav-links a:hover::after, .nav-links button.link:hover::after{ width:100%; }
+        .btn{ display:inline-flex; align-items:center; justify-content:center; gap:8px; border:none; border-radius:999px; font-weight:600; text-decoration:none; transition:transform .18s ease, box-shadow .18s ease, background .18s ease; }
+        .btn:active{ transform:scale(.97); }
+        .btn-primary{ background:var(--marigold); color:var(--navy); padding:12px 24px; box-shadow:0 4px 14px rgba(243,169,59,.35); }
+        .btn-primary:hover{ background:var(--marigold-dark); box-shadow:0 6px 20px rgba(243,169,59,.5); transform:translateY(-2px); }
+        .btn-dark{ background:var(--navy); color:#fff; padding:14px 20px; }
+        .btn-dark:hover{ background:var(--navy-light); transform:translateY(-2px); }
+        .btn-outline{ background:transparent; border:1.5px solid var(--navy); color:var(--navy); padding:11px 22px; }
+        .btn-outline:hover{ background:var(--navy); color:#fff; }
+        .btn-whatsapp{ background:#22A24A; color:#fff; padding:14px 20px; }
+        .btn-whatsapp:hover{ background:#1c8a3f; transform:translateY(-2px); }
+        .hamburger{ display:none; background:none; border:none; color:var(--navy); }
+        .mobile-menu{ display:none; flex-direction:column; gap:14px; padding:18px 20px 24px; border-top:1px solid var(--line); background:var(--paper); }
+        .mobile-menu.open{ display:flex; }
+        @media (max-width:860px){
+            .nav-links{ display:none; }
+            .hamburger{ display:block; }
+        }
+
+        /* ---------- hero ---------- */
+        .hero{ position:relative; background:linear-gradient(180deg,#DCEEFA 0%, var(--sky) 60%, var(--paper) 100%); padding:64px 0 0; overflow:hidden; }
+        .hero-inner{ text-align:center; position:relative; z-index:2; padding-bottom:40px; }
+        .badge-free{
+            display:inline-flex; align-items:center; gap:8px; background:#fff; border:1px solid var(--line);
+            padding:8px 16px; border-radius:999px; font-size:.82rem; font-weight:700; color:var(--leaf); letter-spacing:.02em;
+            box-shadow:0 2px 10px rgba(11,42,74,.06); margin-bottom:26px;
+        }
+        .dot-pulse{ width:8px; height:8px; border-radius:50%; background:var(--leaf); position:relative; }
+        .dot-pulse::after{ content:''; position:absolute; inset:-4px; border-radius:50%; background:var(--leaf); opacity:.4; animation:pulseDot 1.8s ease-out infinite; }
+        @keyframes pulseDot{ 0%{ transform:scale(.6); opacity:.5;} 100%{ transform:scale(2.4); opacity:0;} }
+
+        .hero h1{ font-size:clamp(2.2rem,5.4vw,3.7rem); line-height:1.12; font-weight:600; color:var(--navy); margin:0 0 20px; letter-spacing:-.01em; }
+        .hero h1 em{ font-style:italic; font-weight:500; color:var(--terracotta); }
+        .hero p.lead{ font-size:1.18rem; color:var(--ink-soft); max-width:600px; margin:0 auto 36px; line-height:1.6; }
+
+        .search-card{
+            max-width:600px; margin:0 auto; background:#fff; border-radius:20px; padding:8px;
+            box-shadow:0 14px 40px rgba(11,42,74,.16); border:1px solid #fff; display:flex; gap:8px;
+            flex-wrap:wrap;
+        }
+        .search-card input{
+            flex:1; min-width:180px; border:none; outline:none; padding:14px 16px; font-size:1rem; background:transparent; color:var(--ink);
+        }
+        .search-card button{ border:none; background:var(--navy); color:#fff; border-radius:14px; padding:14px 26px; font-weight:600; transition:background .2s ease; }
+        .search-card button:hover{ background:var(--navy-light); }
+
+        .stat-strip{ display:flex; justify-content:center; gap:56px; flex-wrap:wrap; margin-top:44px; position:relative; z-index:2; }
+        .stat{ text-align:center; }
+        .stat .num{ font-family:'Fraunces',serif; font-size:2.1rem; font-weight:700; color:var(--navy); }
+        .stat .lbl{ font-size:.85rem; color:var(--ink-soft); font-weight:500; }
+
+        .horizon{ position:relative; width:100%; height:180px; margin-top:50px; }
+        .horizon svg{ width:100%; height:100%; display:block; }
+        .sun-glow{ animation:sunGlow 4s ease-in-out infinite; transform-origin:center; }
+        @keyframes sunGlow{ 0%,100%{ filter:drop-shadow(0 0 6px rgba(243,169,59,.5)); } 50%{ filter:drop-shadow(0 0 18px rgba(243,169,59,.85)); } }
+        .boat{ animation:sailBoat 16s linear infinite; }
+        @keyframes sailBoat{ 0%{ transform:translateX(-8%);} 50%{ transform:translateX(94%) scaleX(-1) translateX(0);} 50.01%{ transform:translateX(94%) scaleX(-1) translateX(0);} 100%{ transform:translateX(-8% ) scaleX(1);} }
+        .water-shimmer{ animation:shimmer 6s ease-in-out infinite; }
+        @keyframes shimmer{ 0%,100%{ opacity:.5; } 50%{ opacity:1; } }
+
+        section{ padding:76px 0; }
+        .section-head{ text-align:center; max-width:620px; margin:0 auto 48px; }
+        .eyebrow-plain{ color:var(--terracotta); font-weight:600; font-size:.95rem; margin-bottom:8px; }
+        .section-head h2{ font-size:clamp(1.7rem,3.2vw,2.5rem); color:var(--navy); font-weight:600; margin:0 0 12px; }
+        .section-head p{ color:var(--ink-soft); font-size:1.05rem; line-height:1.6; margin:0; }
+
+        .cat-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:18px; }
+        .cat-card{
+            background:#fff; border:1px solid var(--line); border-radius:18px; padding:26px 14px; text-align:center;
+            cursor:pointer; transition:transform .22s cubic-bezier(.2,.8,.3,1.2), box-shadow .22s ease, border-color .22s ease;
+        }
+        .cat-card:hover{ transform:translateY(-6px); box-shadow:0 14px 30px rgba(11,42,74,.12); border-color:var(--marigold); }
+        .cat-card:hover .cat-icon{ transform:scale(1.15) rotate(-4deg); }
+        .cat-card.active-filter{ border-color:var(--terracotta); background:#FFF6EF; }
+        .cat-icon{ font-size:2.1rem; margin-bottom:10px; display:inline-block; transition:transform .25s cubic-bezier(.2,.8,.3,1.4); }
+        .cat-name{ font-weight:600; font-size:.92rem; color:var(--navy); }
+
+        .how-wrap{ background:var(--navy); border-radius:28px; padding:56px 40px; color:#fff; }
+        .how-wrap .section-head h2, .how-wrap .section-head p{ color:#fff; }
+        .how-wrap .section-head p{ color:#C6D5E4; }
+        .how-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:30px; }
+        @media (max-width:800px){ .how-grid{ grid-template-columns:1fr; } .how-wrap{ padding:40px 24px; } }
+        .how-step{ text-align:center; }
+        .how-icon{ width:64px; height:64px; border-radius:50%; background:rgba(243,169,59,.14); border:1.5px solid rgba(243,169,59,.4); display:flex; align-items:center; justify-content:center; font-size:1.7rem; margin:0 auto 18px; }
+        .how-step h3{ font-family:'Fraunces',serif; font-weight:600; font-size:1.15rem; margin:0 0 8px; }
+        .how-step p{ color:#B9CADA; font-size:.94rem; line-height:1.55; margin:0; }
+
+        .toolbar{ display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:14px; margin-bottom:32px; }
+        .filter-chip{ display:none; align-items:center; gap:8px; background:#FFF6EF; color:var(--terracotta); padding:9px 16px; border-radius:999px; font-weight:600; font-size:.9rem; }
+        .filter-chip.show{ display:inline-flex; }
+        .filter-chip button{ background:none; border:none; color:var(--terracotta); font-weight:800; font-size:1rem; }
+        .provider-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:24px; }
+        .provider-card{
+            background:#fff; border:1px solid var(--line); border-radius:20px; overflow:hidden;
+            transition:transform .22s ease, box-shadow .22s ease; display:flex; flex-direction:column;
+        }
+        .provider-card:hover{ transform:translateY(-5px); box-shadow:0 16px 34px rgba(11,42,74,.13); }
+        .provider-top{ padding:24px; flex:1; }
+        .provider-head{ display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+        .provider-icon{ width:52px; height:52px; border-radius:14px; background:var(--sky); display:flex; align-items:center; justify-content:center; font-size:1.6rem; flex-shrink:0; }
+        .provider-head h3{ margin:0; font-size:1.2rem; font-weight:600; color:var(--navy); font-family:'Fraunces',serif; }
+        .provider-head .service{ color:var(--river); font-weight:600; font-size:.87rem; }
+        .provider-bio{ color:var(--ink-soft); font-size:.92rem; line-height:1.5; margin:0 0 16px; }
+        .phone-row{ background:var(--sky); border-radius:12px; padding:11px 14px; display:flex; justify-content:space-between; align-items:center; }
+        .phone-row .num{ font-weight:700; color:var(--navy); letter-spacing:.02em; }
+        .phone-row .tag{ font-size:.72rem; color:var(--leaf); font-weight:700; }
+        .provider-actions{ display:grid; gap:8px; padding:16px 20px; background:#FBFAF7; border-top:1px solid var(--line); }
+        .provider-actions.two{ grid-template-columns:1fr 1fr; }
+        .call-btn{ background:var(--navy); color:#fff; border-radius:12px; padding:12px; text-align:center; font-weight:700; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:8px; transition:background .2s; }
+        .call-btn:hover{ background:var(--navy-light); }
+        .wa-btn{ background:#22A24A; color:#fff; border-radius:12px; padding:12px; text-align:center; font-weight:700; text-decoration:none; transition:background .2s; }
+        .wa-btn:hover{ background:#1c8a3f; }
+        .empty-note{ text-align:center; color:var(--ink-soft); padding:50px 0; }
+        .empty-note button{ background:none; border:none; color:var(--river); text-decoration:underline; font-weight:600; }
+        .suggest-line{ text-align:center; margin-top:40px; }
+        .suggest-line button{ background:none; border:none; color:var(--terracotta); font-weight:700; font-size:1rem; }
+        .suggest-line button:hover{ text-decoration:underline; }
+
+        .trust-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:24px; }
+        @media (max-width:860px){ .trust-grid{ grid-template-columns:1fr 1fr; } }
+        .trust-card{ text-align:center; padding:8px; }
+        .trust-emoji{ font-size:1.9rem; margin-bottom:10px; }
+        .trust-card h4{ font-family:'Fraunces',serif; font-size:1.02rem; color:var(--navy); margin:0 0 6px; font-weight:600; }
+        .trust-card p{ font-size:.85rem; color:var(--ink-soft); margin:0; line-height:1.5; }
+
+        .ad-card{ background:#fff; border:1.5px solid var(--marigold); border-radius:18px; padding:22px; position:relative; overflow:hidden; }
+        .ad-ribbon{
+            position:absolute; top:14px; right:-32px; background:var(--terracotta); color:#fff; font-size:.65rem;
+            font-weight:800; letter-spacing:.06em; padding:5px 38px; transform:rotate(35deg); text-transform:uppercase;
+        }
+        .ad-icon{ font-size:1.9rem; margin-bottom:10px; }
+        .ad-card h3{ font-family:'Fraunces',serif; font-size:1.1rem; margin:0 0 6px; color:var(--navy); }
+        .ad-card p{ font-size:.88rem; color:var(--ink-soft); margin:0 0 16px; line-height:1.5; }
+
+        .cta-banner{
+            background:linear-gradient(120deg,var(--terracotta),var(--marigold)); border-radius:28px; padding:56px 40px;
+            text-align:center; color:#fff; position:relative; overflow:hidden;
+        }
+        .cta-banner h2{ font-family:'Fraunces',serif; font-size:clamp(1.6rem,3vw,2.2rem); margin:0 0 12px; font-weight:600; }
+        .cta-banner p{ margin:0 0 28px; color:#fff; opacity:.95; max-width:480px; margin-left:auto; margin-right:auto; }
+        .cta-banner .btn-primary{ background:#fff; color:var(--terracotta); box-shadow:0 8px 24px rgba(0,0,0,.15); }
+        .cta-banner .btn-primary:hover{ background:#fff; transform:translateY(-2px) scale(1.03); }
+
+        footer{ background:var(--navy); color:#B9CADA; padding:60px 0 30px; }
+        .foot-grid{ display:grid; grid-template-columns:2fr 1fr 1fr; gap:40px; margin-bottom:40px; }
+        @media (max-width:760px){ .foot-grid{ grid-template-columns:1fr; gap:28px; } }
+        .foot-brand{ display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+        .foot-brand img{ height:36px; width:36px; border-radius:50%; object-fit:cover; }
+        .foot-brand span{ font-family:'Fraunces',serif; font-weight:600; font-size:1.4rem; color:#fff; }
+        footer h4{ color:#fff; font-size:.95rem; margin:0 0 16px; font-weight:600; }
+        footer ul{ list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:10px; }
+        footer a, footer button.linklike{ background:none; border:none; color:#B9CADA; font-size:.9rem; text-align:left; padding:0; }
+        footer a:hover, footer button.linklike:hover{ color:#fff; }
+        .foot-bottom{ border-top:1px solid rgba(255,255,255,.12); padding-top:24px; text-align:center; font-size:.85rem; color:#8AA0B4; }
+
+        .modal-overlay{ position:fixed; inset:0; z-index:50; background:rgba(11,42,74,.55); backdrop-filter:blur(2px); display:flex; align-items:center; justify-content:center; padding:16px; opacity:0; visibility:hidden; transition:opacity .25s ease, visibility .25s ease; }
+        .modal-overlay.active{ opacity:1; visibility:visible; }
+        .modal-content{ background:#fff; border-radius:20px; box-shadow:0 30px 70px rgba(11,42,74,.3); width:100%; max-height:90vh; display:flex; flex-direction:column; transform:scale(.94) translateY(14px); opacity:0; transition:transform .28s cubic-bezier(.2,.8,.3,1.1), opacity .28s ease; }
+        .modal-overlay.active .modal-content{ transform:scale(1) translateY(0); opacity:1; }
+        .modal-head{ padding:20px 24px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; }
+        .modal-head h3{ margin:0; font-family:'Fraunces',serif; font-size:1.2rem; color:var(--navy); }
+        .modal-head button{ background:none; border:none; font-size:1.3rem; color:var(--ink-soft); }
+        .modal-body{ padding:24px; overflow-y:auto; }
+        .field{ margin-bottom:16px; }
+        .field label{ display:block; font-size:.87rem; font-weight:600; color:var(--navy); margin-bottom:6px; }
+        .field input, .field select, .field textarea{
+            width:100%; padding:12px 14px; border:1.5px solid var(--line); border-radius:12px; font-size:.95rem; font-family:inherit;
+            outline:none; transition:border-color .2s ease, box-shadow .2s ease; color:var(--ink); background:#fff;
+        }
+        .field input:focus, .field select:focus, .field textarea:focus{ border-color:var(--river); box-shadow:0 0 0 3px rgba(46,134,171,.15); }
+        .note-box{ background:var(--sky); border:1px solid #D2E7F5; border-radius:12px; padding:12px 14px; font-size:.85rem; color:var(--navy); margin-bottom:16px; }
+        .note-box.green{ background:#EEF8EF; border-color:#CFE9D0; color:var(--leaf); }
+        .submit-btn{ width:100%; background:var(--navy); color:#fff; border:none; border-radius:14px; padding:15px; font-weight:700; font-size:1rem; transition:background .2s ease; }
+        .submit-btn:hover{ background:var(--navy-light); }
+        .submit-btn:disabled{ opacity:.6; }
+        .err-text{ color:#C0392B; font-size:.8rem; margin-top:4px; display:none; }
+
+        .admin-shell{ position:fixed; inset:0; z-index:50; background:#F1F4F7; overflow-y:auto; opacity:0; visibility:hidden; transition:opacity .25s ease, visibility .25s ease; }
+        .admin-shell.active{ opacity:1; visibility:visible; }
+        .admin-top{ background:var(--navy); color:#fff; position:sticky; top:0; z-index:5; }
+        .admin-top-inner{ display:flex; justify-content:space-between; align-items:center; padding:18px 24px; max-width:1120px; margin:0 auto; }
+        .admin-top h2{ margin:0; font-family:'Fraunces',serif; font-size:1.3rem; display:flex; align-items:center; gap:10px; }
+        .admin-tabs{ display:flex; gap:8px; overflow-x:auto; padding:0 24px 14px; max-width:1120px; margin:0 auto; }
+        .tab-btn{ background:rgba(255,255,255,.1); border:none; color:#fff; padding:9px 16px; border-radius:10px; font-size:.87rem; font-weight:600; white-space:nowrap; }
+        .tab-btn.active{ background:var(--marigold); color:var(--navy); }
+        .admin-body{ max-width:1120px; margin:0 auto; padding:32px 24px; }
+        .stat-card{ background:#fff; border-radius:16px; border:1px solid var(--line); padding:20px; }
+        .stat-card .lbl{ font-size:.78rem; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-soft); font-weight:700; margin-bottom:6px; }
+        .stat-card .val{ font-family:'Fraunces',serif; font-size:1.8rem; font-weight:700; color:var(--navy); }
+        .admin-panel-card{ background:#fff; border-radius:16px; border:1px solid var(--line); padding:22px; }
+        .admin-table{ width:100%; border-collapse:collapse; font-size:.9rem; }
+        .admin-table th{ text-align:left; color:var(--ink-soft); font-weight:600; padding:8px 12px 8px 0; border-bottom:1px solid var(--line); font-size:.8rem; text-transform:uppercase; letter-spacing:.03em; }
+        .admin-table td{ padding:12px 12px 12px 0; border-bottom:1px solid #F0F2F4; }
+        .pill{ font-size:.72rem; font-weight:700; padding:4px 10px; border-radius:999px; }
+        .pill-green{ background:#E4F5E6; color:var(--leaf); }
+        .pill-amber{ background:#FCEFD9; color:#A6690C; }
+        .pill-red{ background:#FBE4E1; color:#B23A2E; }
+        .pill-grey{ background:#EEF0F2; color:#8492A0; }
+        .link-btn{ background:none; border:none; font-weight:600; font-size:.85rem; cursor:pointer; }
+        .link-btn.blue{ color:var(--river); }
+        .link-btn.green{ color:var(--leaf); }
+        .link-btn.red{ color:#C0392B; }
+
+        .fab{
+            position:fixed; bottom:22px; right:22px; z-index:35; background:var(--navy); color:#fff; border:none;
+            border-radius:999px; padding:14px 20px; font-weight:700; font-size:.9rem; display:flex; align-items:center; gap:8px;
+            box-shadow:0 10px 26px rgba(11,42,74,.35); transition:transform .2s ease; text-decoration:none;
+        }
+        .fab:hover{ transform:translateY(-3px); }
+
+        .toast-wrap{ position:fixed; bottom:24px; left:24px; z-index:60; display:flex; flex-direction:column; gap:10px; }
+        .toast{ color:#fff; padding:13px 18px; border-radius:12px; font-size:.9rem; font-weight:600; max-width:280px; box-shadow:0 8px 24px rgba(0,0,0,.2); transform:translateX(-130%); transition:transform .3s ease; }
+        .toast.show{ transform:translateX(0); }
+        .toast.success{ background:var(--leaf); }
+        .toast.error{ background:#C0392B; }
+        .toast.info{ background:var(--navy); }
+
+        @media (prefers-reduced-motion:reduce){
+            .sun-glow, .boat, .water-shimmer, .dot-pulse::after{ animation:none !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="top">
+        <div class="container nav-inner">
+            <div class="brand" onclick="scrollToId('top')">
+                <img src="/assets/logo.png" alt="Farasdanga">
+                <span>Farasdanga</span>
+            </div>
+            <div class="nav-links">
+                <a href="#services" onclick="return scrollToId('services')">Services</a>
+                <a href="#ads" onclick="return scrollToId('ads')">Local Businesses</a>
+                <button class="link" onclick="openSuggestModal()">Suggest a Provider</button>
+                <button class="btn btn-primary" onclick="openAdModal()">Post Your Ad</button>
+            </div>
+            <button class="hamburger" onclick="toggleMobileMenu()">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+            </button>
+        </div>
+        <div class="mobile-menu" id="mobile-menu">
+            <a href="#services" onclick="toggleMobileMenu(); return scrollToId('services')">Services</a>
+            <a href="#ads" onclick="toggleMobileMenu(); return scrollToId('ads')">Local Businesses</a>
+            <button class="link" style="text-align:left" onclick="toggleMobileMenu(); openSuggestModal()">Suggest a Provider</button>
+            <button class="btn btn-primary" onclick="toggleMobileMenu(); openAdModal()">Post Your Ad</button>
+        </div>
+    </nav>
+
+    <main id="top">
+        <section class="hero">
+            <div class="container hero-inner">
+                <span class="badge-free"><span class="dot-pulse"></span> Free to browse. Free to call. Always.</span>
+                <h1>Every trusted <em>hand&nbsp;in&nbsp;town,</em><br>one call away.</h1>
+                <p class="lead">A community directory built by and for Farasdanga — find a plumber, electrician, cleaner or carpenter nearby, and just ring them. No apps to install, no fees to anyone, no middleman in between.</p>
+
+                <div class="search-card">
+                    <input id="search-input" type="text" placeholder="Try “electrician” or “Ramesh”…" onkeydown="if(event.key==='Enter'){doSearch(); return false;}">
+                    <button onclick="doSearch()">Find someone</button>
+                </div>
+
+                <div class="stat-strip">
+                    <div class="stat"><div class="num" id="stat-providers">0</div><div class="lbl">Providers listed</div></div>
+                    <div class="stat"><div class="num" id="stat-categories">0</div><div class="lbl">Trades covered</div></div>
+                    <div class="stat"><div class="num">₹0</div><div class="lbl">Charged to residents</div></div>
+                </div>
+            </div>
+
+            <div class="horizon" aria-hidden="true">
+                <svg viewBox="0 0 1200 200" preserveAspectRatio="none">
+                    <rect x="0" y="0" width="1200" height="200" fill="#EAF4FB"/>
+                    <circle class="sun-glow" cx="1000" cy="55" r="34" fill="#F3A93B"/>
+                    <path d="M0 120 L1200 120 L1200 200 L0 200 Z" fill="#0B2A4A"/>
+                    <path class="water-shimmer" d="M0 128 Q60 118 120 128 T240 128 T360 128 T480 128 T600 128 T720 128 T840 128 T960 128 T1080 128 T1200 128" stroke="#2E86AB" stroke-width="2" fill="none" opacity=".6"/>
+                    <path class="water-shimmer" d="M0 145 Q60 138 120 145 T240 145 T360 145 T480 145 T600 145 T720 145 T840 145 T960 145 T1080 145 T1200 145" stroke="#3E6E93" stroke-width="2" fill="none" opacity=".5" style="animation-delay:1s"/>
+                    <g fill="none" stroke="#123a63" stroke-width="3">
+                        <line x1="640" y1="60" x2="640" y2="120"/>
+                        <line x1="900" y1="60" x2="900" y2="120"/>
+                        <path d="M600 120 L640 60 L680 120"/>
+                        <path d="M680 120 L720 60 L760 120"/>
+                        <path d="M760 120 L800 60 L840 120"/>
+                        <path d="M840 120 L860 90 L900 120"/>
+                        <line x1="600" y1="120" x2="900" y2="120"/>
+                    </g>
+                    <g>
+                        <rect x="60" y="60" width="150" height="62" fill="#F3A93B"/>
+                        <rect x="60" y="60" width="150" height="10" fill="#BB4E24"/>
+                        <rect x="80" y="76" width="18" height="26" fill="#EAF4FB" opacity=".85"/>
+                        <rect x="110" y="76" width="18" height="26" fill="#EAF4FB" opacity=".85"/>
+                        <rect x="140" y="76" width="18" height="26" fill="#EAF4FB" opacity=".85"/>
+                        <rect x="170" y="76" width="18" height="26" fill="#EAF4FB" opacity=".85"/>
+                        <rect x="30" y="40" width="6" height="82" fill="#123a63"/>
+                        <circle cx="33" cy="36" r="8" fill="#F3A93B" opacity=".9"/>
+                    </g>
+                    <g class="boat">
+                        <path d="M420 132 L470 132 L460 144 L430 144 Z" fill="#123a63"/>
+                        <line x1="445" y1="132" x2="445" y2="112" stroke="#123a63" stroke-width="2"/>
+                        <path d="M446 114 L462 128 L446 128 Z" fill="#BB4E24"/>
+                    </g>
+                </svg>
+            </div>
+        </section>
+
+        <section id="services">
+            <div class="container">
+                <div class="section-head">
+                    <p class="eyebrow-plain">Browse by trade</p>
+                    <h2>What do you need help with today?</h2>
+                    <p>Tap a category to see everyone nearby who offers it.</p>
+                </div>
+                <div id="categories-container" class="cat-grid"></div>
+            </div>
+        </section>
+
+        <section>
+            <div class="container">
+                <div class="how-wrap">
+                    <div class="section-head">
+                        <p class="eyebrow-plain" style="color:var(--marigold)">No sign-up, no app</p>
+                        <h2>As simple as it should be</h2>
+                        <p>We kept this to the two things that actually matter: finding someone, and calling them.</p>
+                    </div>
+                    <div class="how-grid">
+                        <div class="how-step">
+                            <div class="how-icon">🔍</div>
+                            <h3>Search or browse</h3>
+                            <p>Look through categories or type what you need — plumber, tutor, electrician, anything local.</p>
+                        </div>
+                        <div class="how-step">
+                            <div class="how-icon">📞</div>
+                            <h3>Call them directly</h3>
+                            <p>Every listing shows a real number. Tap to call or WhatsApp — you're talking to them, not us.</p>
+                        </div>
+                        <div class="how-step">
+                            <div class="how-icon">🤝</div>
+                            <h3>Sort it out together</h3>
+                            <p>Whatever you agree on price and timing is between you two. We never touch a rupee of it.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <div class="container">
+                <div class="toolbar">
+                    <div>
+                        <p class="eyebrow-plain">The directory</p>
+                        <h2 style="margin:0; font-size:1.9rem; color:var(--navy);">Local professionals</h2>
+                    </div>
+                    <div class="filter-chip" id="filter-label">
+                        Showing: <span id="filter-label-text"></span>
+                        <button onclick="clearFilter()">&times;</button>
+                    </div>
+                </div>
+                <div id="providers-container" class="provider-grid"></div>
+                <p id="providers-empty" class="empty-note" style="display:none;">No one's listed here yet. Try another search, or <button onclick="clearFilter()">clear the filter</button>.</p>
+                <div class="suggest-line">
+                    <button onclick="openSuggestModal()">Know someone reliable who isn't listed yet? Suggest them — it's free →</button>
+                </div>
+            </div>
+        </section>
+
+        <section style="padding-top:0;">
+            <div class="container">
+                <div class="trust-grid">
+                    <div class="trust-card"><div class="trust-emoji">🆓</div><h4>Free, permanently</h4><p>Browsing and calling never costs residents or providers anything.</p></div>
+                    <div class="trust-card"><div class="trust-emoji">☎️</div><h4>Straight to them</h4><p>No booking system in between — you speak to the provider directly.</p></div>
+                    <div class="trust-card"><div class="trust-emoji">🧾</div><h4>Community-reviewed</h4><p>Suggested listings are checked by our team before they go live.</p></div>
+                    <div class="trust-card"><div class="trust-emoji">🏘️</div><h4>Built for Farasdanga</h4><p>Run by local volunteers, for the town — not a national platform.</p></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="ads">
+            <div class="container">
+                <div class="toolbar">
+                    <div>
+                        <p class="eyebrow-plain">Sponsored</p>
+                        <h2 style="margin:0; font-size:1.9rem; color:var(--navy);">Local business promotions</h2>
+                    </div>
+                    <button class="btn btn-primary" onclick="openAdModal()">Post Your Ad →</button>
+                </div>
+                <div id="ads-container" class="cat-grid" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr));"></div>
+                <p id="ads-empty" class="empty-note" style="display:none;">No promotions live right now. <button onclick="openAdModal()">Be the first to post one</button>.</p>
+            </div>
+        </section>
+
+        <section>
+            <div class="container">
+                <div class="cta-banner">
+                    <h2>Own a shop or run a business here?</h2>
+                    <p>Get seen by everyone browsing the directory. A small one-time fee keeps it fair for everyone — reviewed by our team before it goes live.</p>
+                    <button class="btn btn-primary" onclick="openAdModal()">Post Your Business Ad</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="foot-grid">
+                <div>
+                    <div class="foot-brand"><img src="/assets/logo.png" alt="Farasdanga"><span>Farasdanga</span></div>
+                    <p id="footer-about" style="max-width:340px; font-size:.92rem; line-height:1.6;"></p>
+                </div>
+                <div>
+                    <h4>Platform</h4>
+                    <ul>
+                        <li><a href="#" onclick="return openInfo('about')">About</a></li>
+                        <li><a href="#" onclick="return openInfo('contact')">Contact</a></li>
+                        <li><a href="#" onclick="return openInfo('terms')">Terms</a></li>
+                        <li><a href="#" onclick="return openAdminLogin()" style="opacity:.6">Admin Login</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>Grow with us</h4>
+                    <ul>
+                        <li><button class="linklike" onclick="openSuggestModal()">Suggest a Provider (Free)</button></li>
+                        <li><button class="linklike" onclick="openAdModal()">Post a Business Ad (Paid)</button></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="foot-bottom">© 2026 Farasdanga. A free community service, run by volunteers.</div>
+        </div>
+    </footer>
+
+    <div id="suggest-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width:460px;">
+            <div class="modal-head"><h3>Suggest a local provider</h3><button onclick="closeModal('suggest-modal')">✕</button></div>
+            <form id="suggest-form" onsubmit="submitSuggestion(event)" class="modal-body">
+                <div class="note-box green">This is completely free. Our team reviews every suggestion before it goes live.</div>
+                <div class="field"><label>Provider's name</label><input id="sg-name" required></div>
+                <div class="field"><label>Phone number</label><input id="sg-phone" required></div>
+                <div class="field"><label>WhatsApp (optional)</label><input id="sg-whatsapp"></div>
+                <div class="field"><label>Service</label><select id="sg-service" required></select></div>
+                <div class="field"><label>A short note (experience, area, etc.)</label><textarea id="sg-bio" rows="2"></textarea></div>
+                <hr style="border:none; border-top:1px solid var(--line); margin:18px 0;">
+                <div class="field"><label>Your name (optional)</label><input id="sg-your-name"></div>
+                <div class="field"><label>Your phone/email, in case we have questions (optional)</label><input id="sg-your-contact"></div>
+                <button type="submit" id="sg-submit-btn" class="submit-btn">Submit for review — free</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="ad-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width:460px;">
+            <div class="modal-head"><h3>Post your business ad</h3><button onclick="closeModal('ad-modal')">✕</button></div>
+            <form id="ad-form" onsubmit="submitAd(event)" class="modal-body">
+                <p id="ad-price-note" class="note-box"></p>
+                <div class="field"><label>Business name</label><input id="ad-name" required></div>
+                <div class="field"><label>Short description</label><textarea id="ad-desc" rows="2" required placeholder="e.g. Fresh bakery items daily, home delivery available"></textarea></div>
+                <div class="field"><label>Icon / emoji (optional)</label><input id="ad-icon" placeholder="📢"></div>
+                <div class="field"><label>Contact phone</label><input id="ad-phone" required></div>
+                <div class="field"><label>Email (optional)</label><input id="ad-email" type="email"></div>
+                <p style="font-size:.8rem; color:var(--ink-soft); margin:0 0 16px;">After payment, your ad is reviewed by our team before it goes live.</p>
+                <button type="submit" id="ad-submit-btn" class="submit-btn">Pay &amp; submit ad</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="info-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width:440px;">
+            <div class="modal-head"><h3 id="info-title">Info</h3><button onclick="closeModal('info-modal')">✕</button></div>
+            <div class="modal-body" id="info-body" style="color:var(--ink-soft); font-size:.95rem; line-height:1.6;"></div>
+        </div>
+    </div>
+
+    <div id="admin-login-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width:380px;">
+            <div class="modal-head" style="background:var(--navy); border-radius:20px 20px 0 0;"><h3 style="color:#fff;">Admin login</h3><button onclick="closeModal('admin-login-modal')" style="color:#fff;">✕</button></div>
+            <form onsubmit="adminLogin(event)" class="modal-body">
+                <div class="field">
+                    <label>Admin password</label>
+                    <input id="admin-password-input" type="password" required>
+                    <p class="err-text" id="admin-login-error">Incorrect password.</p>
+                </div>
+                <button type="submit" class="submit-btn">Login</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="admin-panel" class="admin-shell">
+        <div class="admin-top">
+            <div class="admin-top-inner">
+                <h2>🛠️ Admin Dashboard</h2>
+                <button class="btn btn-outline" style="border-color:#fff; color:#fff;" onclick="exitAdmin()">Exit to site</button>
+            </div>
+            <div class="admin-tabs" id="admin-tabs">
+                <button class="tab-btn active" onclick="switchAdminTab('dashboard')">Dashboard</button>
+                <button class="tab-btn" onclick="switchAdminTab('providers')">Providers</button>
+                <button class="tab-btn" onclick="switchAdminTab('categories')">Categories</button>
+                <button class="tab-btn" onclick="switchAdminTab('ads')">Ads</button>
+                <button class="tab-btn" onclick="switchAdminTab('content')">Site Content</button>
+            </div>
+        </div>
+        <div class="admin-body" id="admin-content"></div>
+    </div>
+
+    <a class="fab" id="fab-help" href="#" onclick="return openInfo('contact')">💬 Need help?</a>
+
+    <div class="toast-wrap" id="toast-container"></div>
+
+    <script>
+    const API = '/api';
+    let CATEGORIES = [];
+    let activeFilter = null;
+    let SETTINGS = {};
+
+    async function api(path, opts = {}) {
+        const res = await fetch(API + path, { credentials: 'include', headers: { 'Content-Type': 'application/json' }, ...opts });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Request failed');
+        return data;
+    }
+
+    function toast(msg, type) {
+        type = type || 'success';
+        const el = document.createElement('div');
+        el.className = `toast ${type}`;
+        el.textContent = msg;
+        document.getElementById('toast-container').appendChild(el);
+        requestAnimationFrame(() => el.classList.add('show'));
+        setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, 3500);
+    }
+    function openModal(id) { document.getElementById(id).classList.add('active'); document.body.style.overflow = 'hidden'; }
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); document.body.style.overflow = ''; }
+    function scrollToId(id) { const el = document.getElementById(id); if (el) el.scrollIntoView({ behavior: 'smooth' }); return false; }
+    function toggleMobileMenu() { document.getElementById('mobile-menu').classList.toggle('open'); }
+    function telHref(phone) { return 'tel:' + phone.replace(/\s+/g, ''); }
+    function waHref(phone) { return 'https://wa.me/' + phone.replace(/[^\d]/g, ''); }
+
+    function animateCount(el, target) {
+        const start = 0; const duration = 900; const startTime = performance.now();
+        function tick(now) {
+            const progress = Math.min((now - startTime) / duration, 1);
+            const eased = 1 - Math.pow(1 - progress, 3);
+            el.textContent = Math.round(start + (target - start) * eased);
+            if (progress < 1) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+    }
+
+    let SETTINGS_LOADED = {};
+    async function loadSettings() {
+        const { settings } = await api('/settings');
+        SETTINGS = settings;
+        const h1 = document.querySelector('.hero h1');
+        h1.innerHTML = (settings.hero_title1 || '') + ' <em>' + (settings.hero_title2 || '') + '</em>';
+        document.querySelector('.hero p.lead').textContent = settings.hero_subtitle || '';
+        document.getElementById('footer-about').textContent = settings.footer_about || '';
+        document.getElementById('ad-price-note').textContent = `Ad price: ₹${settings.ad_price_rupees || 499} for ${settings.ad_duration_days || 30} days, reviewed before going live.`;
+    }
+
+    async function loadCategories() {
+        const { categories } = await api('/categories');
+        CATEGORIES = categories;
+        document.getElementById('categories-container').innerHTML = categories.map(c => `
+            <div class="cat-card ${activeFilter===c.name?'active-filter':''}" onclick="filterByCategory('${c.name}')">
+                <div class="cat-icon">${c.icon}</div>
+                <div class="cat-name">${c.name}</div>
+            </div>`).join('');
+        animateCount(document.getElementById('stat-categories'), categories.length);
+    }
+
+    function filterByCategory(name) {
+        activeFilter = name;
+        loadCategories(); loadProviders();
+        document.getElementById('filter-label').classList.add('show');
+        document.getElementById('filter-label-text').textContent = name;
+        scrollToId('services');
+    }
+    function clearFilter() {
+        activeFilter = null;
+        document.getElementById('search-input').value = '';
+        loadCategories(); loadProviders();
+        document.getElementById('filter-label').classList.remove('show');
+    }
+    function doSearch() {
+        const term = document.getElementById('search-input').value.trim();
+        if (!term) { clearFilter(); return; }
+        activeFilter = 'search:' + term.toLowerCase();
+        document.getElementById('filter-label').classList.add('show');
+        document.getElementById('filter-label-text').textContent = `"${term}"`;
+        loadCategories(); loadProviders();
+        scrollToId('services');
+    }
+
+    async function loadProviders() {
+        const { providers } = await api('/providers');
+        animateCount(document.getElementById('stat-providers'), providers.length);
+        let list = providers;
+        if (activeFilter) {
+            if (activeFilter.startsWith('search:')) {
+                const term = activeFilter.slice(7);
+                list = list.filter(p => p.name.toLowerCase().includes(term) || p.service.toLowerCase().includes(term));
+            } else list = list.filter(p => p.service === activeFilter);
+        }
+        const container = document.getElementById('providers-container');
+        const empty = document.getElementById('providers-empty');
+        if (!list.length) { container.innerHTML = ''; empty.style.display = 'block'; return; }
+        empty.style.display = 'none';
+        container.innerHTML = list.map(p => `
+            <div class="provider-card">
+                <div class="provider-top">
+                    <div class="provider-head">
+                        <div class="provider-icon">${p.icon}</div>
+                        <div><h3>${p.name}</h3><div class="service">${p.service}</div></div>
+                    </div>
+                    <p class="provider-bio">${p.bio || ''}</p>
+                    <div class="phone-row"><span class="num">${p.phone}</span><span class="tag">FREE · NO CHARGES</span></div>
+                </div>
+                <div class="provider-actions ${p.whatsapp ? 'two' : ''}">
+                    <a href="${telHref(p.phone)}" class="call-btn">📞 Call now</a>
+                    ${p.whatsapp ? `<a href="${waHref(p.whatsapp)}" target="_blank" class="wa-btn">WhatsApp</a>` : ''}
+                </div>
+            </div>`).join('');
+    }
+
+    async function loadAds() {
+        const { ads } = await api('/ads');
+        const container = document.getElementById('ads-container');
+        const empty = document.getElementById('ads-empty');
+        if (!ads.length) { container.innerHTML = ''; empty.style.display = 'block'; return; }
+        empty.style.display = 'none';
+        container.innerHTML = ads.map(a => `
+            <div class="ad-card">
+                <div class="ad-ribbon">AD</div>
+                <div class="ad-icon">${a.icon || '📢'}</div>
+                <h3>${a.business_name}</h3>
+                <p>${a.description || ''}</p>
+                <a href="${telHref(a.phone)}" class="call-btn" style="display:block; text-decoration:none;">📞 ${a.phone}</a>
+            </div>`).join('');
+    }
+
+    function openSuggestModal() {
+        document.getElementById('suggest-form').reset();
+        document.getElementById('sg-service').innerHTML = CATEGORIES.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+        openModal('suggest-modal');
+    }
+    async function submitSuggestion(e) {
+        e.preventDefault();
+        const btn = document.getElementById('sg-submit-btn');
+        btn.disabled = true; btn.textContent = 'Submitting...';
+        try {
+            await api('/providers/suggest', { method: 'POST', body: JSON.stringify({
+                name: document.getElementById('sg-name').value.trim(),
+                phone: document.getElementById('sg-phone').value.trim(),
+                whatsapp: document.getElementById('sg-whatsapp').value.trim(),
+                service: document.getElementById('sg-service').value,
+                bio: document.getElementById('sg-bio').value.trim(),
+                suggestedByName: document.getElementById('sg-your-name').value.trim(),
+                suggestedByContact: document.getElementById('sg-your-contact').value.trim()
+            })});
+            closeModal('suggest-modal');
+            toast('Thanks! Submitted for review.');
+        } catch (err) { toast(err.message, 'error'); }
+        finally { btn.disabled = false; btn.textContent = 'Submit for review — free'; }
+    }
+
+    function openAdModal() {
+        document.getElementById('ad-form').reset();
+        document.getElementById('ad-price-note').textContent = `Ad price: ₹${SETTINGS.ad_price_rupees || 499} for ${SETTINGS.ad_duration_days || 30} days, reviewed before going live.`;
+        openModal('ad-modal');
+    }
+    async function submitAd(e) {
+        e.preventDefault();
+        const btn = document.getElementById('ad-submit-btn');
+        btn.disabled = true; btn.textContent = 'Preparing payment...';
+        try {
+            const order = await api('/ads/create-order', { method: 'POST', body: JSON.stringify({
+                businessName: document.getElementById('ad-name').value.trim(),
+                description: document.getElementById('ad-desc').value.trim(),
+                icon: document.getElementById('ad-icon').value.trim(),
+                phone: document.getElementById('ad-phone').value.trim(),
+                email: document.getElementById('ad-email').value.trim()
+            })});
+            const rzp = new Razorpay({
+                key: order.keyId, amount: order.amount, currency: 'INR', name: 'Farasdanga',
+                description: 'Business ad listing', order_id: order.orderId, theme: { color: '#0B2A4A' },
+                handler: async function (response) {
+                    try {
+                        await api('/ads/verify-payment', { method: 'POST', body: JSON.stringify({
+                            adId: order.adId,
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_signature: response.razorpay_signature
+                        })});
+                        closeModal('ad-modal');
+                        toast('Payment received! Your ad is pending review.');
+                    } catch (err) { toast('Could not verify payment: ' + err.message, 'error'); }
+                },
+                modal: { ondismiss: function () { toast('Payment cancelled.', 'info'); } }
+            });
+            rzp.open();
+        } catch (err) { toast(err.message, 'error'); }
+        finally { btn.disabled = false; btn.textContent = 'Pay & submit ad'; }
+    }
+
+    function openInfo(type) {
+        const content = {
+            about: ['About Farasdanga', `<p>${SETTINGS.footer_about || ''}</p><p>Anyone can browse and call a listed provider for free. Local businesses can pay a small fee to promote themselves — that's the only paid feature on this site.</p>`],
+            contact: ['Contact us', `<p>📞 ${SETTINGS.contact_phone || ''}<br>✉️ ${SETTINGS.contact_email || ''}</p>`],
+            terms: ['Terms', `<p>This directory is a free community service. Provider listings are submitted by the community and reviewed before publishing. Farasdanga is not responsible for the quality of work performed by listed providers — please use your own judgement when hiring.</p>`]
+        };
+        const [title, body] = content[type] || ['Info', '<p>No content available.</p>'];
+        document.getElementById('info-title').textContent = title;
+        document.getElementById('info-body').innerHTML = body;
+        openModal('info-modal');
+        return false;
+    }
+
+    function openAdminLogin() {
+        document.getElementById('admin-password-input').value = '';
+        document.getElementById('admin-login-error').style.display = 'none';
+        openModal('admin-login-modal');
+        return false;
+    }
+    async function adminLogin(e) {
+        e.preventDefault();
+        try {
+            await api('/admin/login', { method: 'POST', body: JSON.stringify({ password: document.getElementById('admin-password-input').value }) });
+            closeModal('admin-login-modal');
+            document.getElementById('admin-panel').classList.add('active');
+            document.body.style.overflow = 'hidden';
+            switchAdminTab('dashboard');
+        } catch (err) {
+            const e2 = document.getElementById('admin-login-error');
+            e2.textContent = err.message; e2.style.display = 'block';
+        }
+    }
+    function exitAdmin() { document.getElementById('admin-panel').classList.remove('active'); document.body.style.overflow = ''; }
+
+    async function switchAdminTab(tab) {
+        document.querySelectorAll('#admin-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+        const idx = ['dashboard','providers','categories','ads','content'].indexOf(tab);
+        document.querySelectorAll('#admin-tabs .tab-btn')[idx].classList.add('active');
+        const c = document.getElementById('admin-content');
+        if (tab === 'dashboard') {
+            const d = await api('/admin/dashboard');
+            c.innerHTML = `<div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:16px;">
+                ${statCard('Live providers', d.totalProviders)}
+                ${statCard('Pending suggestions', d.pendingProviders, d.pendingProviders?'#A6690C':'')}
+                ${statCard('Live ads', d.liveAds)}
+                ${statCard('Pending ads', d.pendingAds, d.pendingAds?'#A6690C':'')}
+                ${statCard('Total ad revenue', '₹'+(d.adRevenue/100).toFixed(0), 'var(--river)')}
+            </div>`;
+        } else if (tab === 'providers') {
+            const { providers } = await api('/admin/providers');
+            c.innerHTML = renderAdminProviders(providers);
+        } else if (tab === 'categories') {
+            const { categories } = await api('/categories');
+            c.innerHTML = renderAdminCategories(categories);
+        } else if (tab === 'ads') {
+            const { ads } = await api('/admin/ads');
+            c.innerHTML = renderAdminAds(ads);
+        } else if (tab === 'content') {
+            const { settings } = await api('/settings');
+            c.innerHTML = renderAdminContent(settings);
+        }
+    }
+    function statCard(label, val, color) {
+        return `<div class="stat-card"><div class="lbl">${label}</div><div class="val" style="${color?'color:'+color:''}">${val}</div></div>`;
+    }
+
+    function renderAdminProviders(providers) {
+        const badge = { approved: 'pill-green', pending: 'pill-amber', rejected: 'pill-red' };
+        const rows = providers.map(p => `
+            <tr>
+                <td>${p.icon} ${p.name}</td>
+                <td>${p.service}</td>
+                <td style="font-family:monospace; font-size:.85em;">${p.phone}</td>
+                <td><span class="pill ${badge[p.status]||'pill-grey'}">${p.status}</span></td>
+                <td style="text-align:right; white-space:nowrap;">
+                    ${p.status === 'pending' ? `<button class="link-btn green" onclick="approveProvider(${p.id})">Approve</button> <button class="link-btn red" onclick="rejectProvider(${p.id})">Reject</button> ` : ''}
+                    <button class="link-btn blue" onclick="editProvider(${p.id})">Edit</button>
+                    <button class="link-btn red" onclick="deleteProvider(${p.id})">Delete</button>
+                </td>
+            </tr>`).join('');
+        window._providersCache = providers;
+        return `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <h3 style="font-family:'Fraunces',serif; margin:0; color:var(--navy);">Providers &amp; suggestions</h3>
+                <button class="btn btn-primary" style="padding:9px 18px; font-size:.87rem;" onclick="openProviderForm()">+ Add provider</button>
+            </div>
+            <div id="provider-form-area"></div>
+            <div class="admin-panel-card" style="overflow-x:auto;">
+                <table class="admin-table">
+                    <thead><tr><th>Name</th><th>Service</th><th>Phone</th><th>Status</th><th></th></tr></thead>
+                    <tbody>${rows || '<tr><td colspan="5" style="text-align:center; color:var(--ink-soft); padding:24px 0;">No providers yet.</td></tr>'}</tbody>
+                </table>
+            </div>`;
+    }
+    function openProviderForm(id) {
+        const p = id ? window._providersCache.find(x => x.id === id) : null;
+        document.getElementById('provider-form-area').innerHTML = `
+            <div class="admin-panel-card" style="border-color:var(--marigold); margin-bottom:16px;">
+                <h4 style="font-family:'Fraunces',serif; margin:0 0 12px; color:var(--navy);">${p ? 'Edit provider' : 'Add new provider'}</h4>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <input id="pf-name" placeholder="Full name" value="${p ? p.name : ''}" style="padding:10px 12px; border:1px solid var(--line); border-radius:10px;">
+                    <select id="pf-service" style="padding:10px 12px; border:1px solid var(--line); border-radius:10px;">${CATEGORIES.map(c => `<option value="${c.name}" ${p && p.service===c.name?'selected':''}>${c.name}</option>`).join('')}</select>
+                    <input id="pf-phone" placeholder="Phone" value="${p ? p.phone : ''}" style="padding:10px 12px; border:1px solid var(--line); border-radius:10px;">
+                    <input id="pf-whatsapp" placeholder="WhatsApp (optional)" value="${p && p.whatsapp ? p.whatsapp : ''}" style="padding:10px 12px; border:1px solid var(--line); border-radius:10px;">
+                    <select id="pf-status" style="padding:10px 12px; border:1px solid var(--line); border-radius:10px;">
+                        <option value="approved" ${p && p.status==='approved'?'selected':''}>Approved (live)</option>
+                        <option value="pending" ${p && p.status==='pending'?'selected':''}>Pending</option>
+                        <option value="rejected" ${p && p.status==='rejected'?'selected':''}>Rejected</option>
+                    </select>
+                    <textarea id="pf-bio" placeholder="Bio" style="grid-column:1/-1; padding:10px 12px; border:1px solid var(--line); border-radius:10px;">${p ? (p.bio||'') : ''}</textarea>
+                </div>
+                <div style="display:flex; gap:8px; margin-top:14px;">
+                    <button class="btn btn-primary" style="padding:9px 18px; font-size:.87rem;" onclick="saveProvider(${p ? p.id : 'null'})">Save</button>
+                    <button class="btn btn-outline" style="padding:9px 18px; font-size:.87rem;" onclick="document.getElementById('provider-form-area').innerHTML=''">Cancel</button>
+                </div>
+            </div>`;
+    }
+    function editProvider(id) { openProviderForm(id); }
+    async function saveProvider(id) {
+        const body = {
+            name: document.getElementById('pf-name').value.trim(),
+            service: document.getElementById('pf-service').value,
+            phone: document.getElementById('pf-phone').value.trim(),
+            whatsapp: document.getElementById('pf-whatsapp').value.trim(),
+            status: document.getElementById('pf-status').value,
+            bio: document.getElementById('pf-bio').value.trim()
+        };
+        if (!body.name || !body.phone) { toast('Name and phone are required.', 'error'); return; }
+        if (id) await api(`/admin/providers/${id}`, { method: 'PUT', body: JSON.stringify(body) });
+        else await api('/admin/providers', { method: 'POST', body: JSON.stringify(body) });
+        document.getElementById('provider-form-area').innerHTML = '';
+        switchAdminTab('providers'); loadProviders();
+        toast('Provider saved.');
+    }
+    async function approveProvider(id) { await api(`/admin/providers/${id}/approve`, { method: 'POST' }); switchAdminTab('providers'); loadProviders(); toast('Approved — now live.'); }
+    async function rejectProvider(id) { await api(`/admin/providers/${id}/reject`, { method: 'POST' }); switchAdminTab('providers'); toast('Rejected.', 'info'); }
+    async function deleteProvider(id) { if (!confirm('Delete this provider?')) return; await api(`/admin/providers/${id}`, { method: 'DELETE' }); switchAdminTab('providers'); loadProviders(); toast('Deleted.', 'info'); }
+
+    function renderAdminCategories(categories) {
+        return `
+            <h3 style="font-family:'Fraunces',serif; margin:0 0 16px; color:var(--navy);">Categories</h3>
+            ${categories.map(c => `<div class="admin-panel-card" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding:14px 18px;"><span style="font-weight:600; color:var(--navy);">${c.icon} ${c.name}</span><button class="link-btn red" onclick="deleteCategory(${c.id})">Delete</button></div>`).join('')}
+            <div class="admin-panel-card" style="border-color:var(--marigold); margin-top:16px; display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end;">
+                <input id="new-cat-icon" placeholder="Icon" style="width:70px; text-align:center; font-size:1.2rem; padding:9px; border:1px solid var(--line); border-radius:10px;">
+                <input id="new-cat-name" placeholder="Name" style="padding:9px 12px; border:1px solid var(--line); border-radius:10px;">
+                <button class="btn btn-primary" style="padding:9px 18px; font-size:.87rem;" onclick="addCategory()">Add category</button>
+            </div>`;
+    }
+    async function addCategory() {
+        const icon = document.getElementById('new-cat-icon').value.trim() || '🔧';
+        const name = document.getElementById('new-cat-name').value.trim();
+        if (!name) return toast('Enter a category name.', 'error');
+        await api('/admin/categories', { method: 'POST', body: JSON.stringify({ name, icon }) });
+        switchAdminTab('categories'); loadCategories(); toast('Category added.');
+    }
+    async function deleteCategory(id) { if (!confirm('Delete this category?')) return; await api(`/admin/categories/${id}`, { method: 'DELETE' }); switchAdminTab('categories'); loadCategories(); toast('Deleted.', 'info'); }
+
+    function renderAdminAds(ads) {
+        const badge = { pending_payment: 'pill-grey', pending_review: 'pill-amber', approved: 'pill-green', rejected: 'pill-red', expired: 'pill-grey' };
+        const rows = ads.map(a => `
+            <div class="admin-panel-card" style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px;">
+                <div>
+                    <p style="font-weight:700; margin:0 0 4px; color:var(--navy);">${a.icon || '📢'} ${a.business_name}</p>
+                    <p style="font-size:.85rem; color:var(--ink-soft); margin:0;">${a.phone} · ₹${(a.amount/100).toFixed(0)} · ${new Date(a.created_at).toLocaleDateString()}</p>
+                    <p style="font-size:.85rem; color:var(--ink-soft); margin:4px 0 0;">${a.description || ''}</p>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span class="pill ${badge[a.status]||'pill-grey'}">${a.status.replace('_',' ')}</span>
+                    ${a.status === 'pending_review' ? `<button class="link-btn green" onclick="approveAd(${a.id})">Approve</button><button class="link-btn red" onclick="rejectAd(${a.id})">Reject</button>` : ''}
+                    <button class="link-btn red" onclick="deleteAd(${a.id})">Delete</button>
+                </div>
+            </div>`).join('');
+        return `<h3 style="font-family:'Fraunces',serif; margin:0 0 16px; color:var(--navy);">Business ads</h3>${rows || '<p style="color:var(--ink-soft);">No ads yet.</p>'}`;
+    }
+    async function approveAd(id) { await api(`/admin/ads/${id}/approve`, { method: 'POST' }); switchAdminTab('ads'); loadAds(); toast('Ad approved — now live.'); }
+    async function rejectAd(id) { await api(`/admin/ads/${id}/reject`, { method: 'POST' }); switchAdminTab('ads'); toast('Ad rejected.', 'info'); }
+    async function deleteAd(id) { if (!confirm('Delete this ad?')) return; await api(`/admin/ads/${id}`, { method: 'DELETE' }); switchAdminTab('ads'); loadAds(); toast('Deleted.', 'info'); }
+
+    function renderAdminContent(settings) {
+        return `
+            <h3 style="font-family:'Fraunces',serif; margin:0 0 16px; color:var(--navy);">Edit site content &amp; ad pricing</h3>
+            <div class="admin-panel-card" style="max-width:560px; display:flex; flex-direction:column; gap:14px;">
+                <div class="field"><label>Hero title (line 1)</label><input id="cc-title1" value="${settings.hero_title1||''}"></div>
+                <div class="field"><label>Hero title (line 2, emphasized)</label><input id="cc-title2" value="${settings.hero_title2||''}"></div>
+                <div class="field"><label>Hero subtitle</label><textarea id="cc-subtitle" rows="2">${settings.hero_subtitle||''}</textarea></div>
+                <div class="field"><label>Footer about text</label><textarea id="cc-about" rows="2">${settings.footer_about||''}</textarea></div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div class="field"><label>Ad price (₹)</label><input id="cc-ad-price" type="number" value="${settings.ad_price_rupees||499}"></div>
+                    <div class="field"><label>Ad duration (days)</label><input id="cc-ad-duration" type="number" value="${settings.ad_duration_days||30}"></div>
+                </div>
+                <div class="field"><label>Contact phone</label><input id="cc-contact-phone" value="${settings.contact_phone||''}"></div>
+                <div class="field"><label>Contact email</label><input id="cc-contact-email" value="${settings.contact_email||''}"></div>
+                <button class="btn btn-primary" style="align-self:flex-start; padding:11px 22px;" onclick="saveContent()">Save changes</button>
+            </div>`;
+    }
+    async function saveContent() {
+        await api('/admin/settings', { method: 'POST', body: JSON.stringify({
+            hero_title1: document.getElementById('cc-title1').value,
+            hero_title2: document.getElementById('cc-title2').value,
+            hero_subtitle: document.getElementById('cc-subtitle').value,
+            footer_about: document.getElementById('cc-about').value,
+            ad_price_rupees: document.getElementById('cc-ad-price').value,
+            ad_duration_days: document.getElementById('cc-ad-duration').value,
+            contact_phone: document.getElementById('cc-contact-phone').value,
+            contact_email: document.getElementById('cc-contact-email').value
+        })});
+        loadSettings();
+        toast('Site content updated.');
+    }
+
+    window.onload = async () => {
+        await loadSettings();
+        await loadCategories();
+        await loadProviders();
+        await loadAds();
+    };
+    </script>
+</body>
+</html>
