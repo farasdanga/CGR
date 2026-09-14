@@ -48,6 +48,7 @@ async function router(request, env, url) {
   if (pathname === '/api/admin/categories' && method === 'POST') return adminOnly(request, env, adminSaveCategory);
   if (pathname.match(/^\/api\/admin\/categories\/\d+$/) && method === 'DELETE') return adminOnly(request, env, () => adminDeleteCategory(env, idFromPath(pathname)));
   if (pathname === '/api/admin/ads' && method === 'GET') return adminOnly(request, env, adminListAds);
+  if (pathname.match(/^\/api\/admin\/ads\/\d+$/) && method === 'PUT') return adminOnly(request, env, (r, e) => adminUpdateAd(r, e, idFromPath(pathname)));
   if (pathname.match(/^\/api\/admin\/ads\/\d+\/approve$/) && method === 'POST') return adminOnly(request, env, () => adminApproveAd(env, idFromPath(pathname)));
   if (pathname.match(/^\/api\/admin\/ads\/\d+\/reject$/) && method === 'POST') return adminOnly(request, env, () => adminRejectAd(env, idFromPath(pathname)));
   if (pathname.match(/^\/api\/admin\/ads\/\d+$/) && method === 'DELETE') return adminOnly(request, env, () => adminDeleteAd(env, idFromPath(pathname)));
@@ -150,8 +151,16 @@ async function listProviders(env) {
   return json({ providers: results });
 }
 async function listAds(env) {
+  // Use datetime(expires_at) rather than a raw string compare — expires_at is
+  // stored as an ISO string (2026-10-14T12:00:00.000Z) while datetime('now')
+  // returns SQLite's own format (2026-10-14 12:00:00); datetime() normalizes
+  // both sides so the comparison is reliable. A NULL expiry (shouldn't happen,
+  // but just in case) is treated as "still live" rather than silently hidden.
   const { results } = await env.DB.prepare(
-    "SELECT id, business_name, description, icon, phone, image_data FROM ads WHERE status = 'approved' AND expires_at > datetime('now') ORDER BY id DESC"
+    `SELECT id, business_name, description, icon, phone, email, website_url, whatsapp, image_data
+     FROM ads
+     WHERE status = 'approved' AND (expires_at IS NULL OR datetime(expires_at) > datetime('now'))
+     ORDER BY id DESC`
   ).all();
   return json({ ads: results });
 }
@@ -192,7 +201,7 @@ async function createAdOrder(request, env) {
   }
 
   const body = await request.json();
-  const { businessName, description, phone, email, icon, imageData } = body;
+  const { businessName, description, phone, email, icon, imageData, websiteUrl, whatsapp } = body;
   if (!businessName || !phone) return json({ error: 'Business name and phone are required.' }, 400);
 
   let image = null;
@@ -204,6 +213,12 @@ async function createAdOrder(request, env) {
       return json({ error: 'Image is too large — please choose a smaller one.' }, 400);
     }
     image = imageData;
+  }
+
+  let website = null;
+  if (websiteUrl && websiteUrl.trim()) {
+    website = websiteUrl.trim();
+    if (!/^https?:\/\//i.test(website)) website = 'https://' + website;
   }
 
   const priceSetting = await env.DB.prepare("SELECT value FROM settings WHERE key = 'ad_price_rupees'").first();
@@ -220,9 +235,9 @@ async function createAdOrder(request, env) {
   if (!order.id) return json({ error: 'Could not create payment order.', detail: order }, 502);
 
   const result = await env.DB.prepare(
-    `INSERT INTO ads (business_name, description, icon, phone, email, image_data, amount, razorpay_order_id, status)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending_payment')`
-  ).bind(businessName, description || '', icon || '📢', phone, email || '', image, amountPaise, order.id).run();
+    `INSERT INTO ads (business_name, description, icon, phone, email, website_url, whatsapp, image_data, amount, razorpay_order_id, status)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending_payment')`
+  ).bind(businessName, description || '', icon || '📢', phone, email || '', website, whatsapp || null, image, amountPaise, order.id).run();
 
   return json({ adId: result.meta.last_row_id, orderId: order.id, amount: amountPaise, keyId: env.RAZORPAY_KEY_ID });
 }
@@ -256,7 +271,7 @@ async function adminLogout(request, env) {
 async function adminDashboard(request, env) {
   const providers = await env.DB.prepare("SELECT COUNT(*) as n FROM providers WHERE status = 'approved'").first();
   const pendingProviders = await env.DB.prepare("SELECT COUNT(*) as n FROM providers WHERE status = 'pending'").first();
-  const liveAds = await env.DB.prepare("SELECT COUNT(*) as n FROM ads WHERE status = 'approved' AND expires_at > datetime('now')").first();
+  const liveAds = await env.DB.prepare("SELECT COUNT(*) as n FROM ads WHERE status = 'approved' AND (expires_at IS NULL OR datetime(expires_at) > datetime('now'))").first();
   const pendingAds = await env.DB.prepare("SELECT COUNT(*) as n FROM ads WHERE status = 'pending_review'").first();
   const revenue = await env.DB.prepare("SELECT COALESCE(SUM(amount),0) as total FROM ads WHERE status IN ('pending_review','approved','expired')").first();
   return json({
@@ -312,6 +327,39 @@ async function adminDeleteCategory(env, id) {
 async function adminListAds(request, env) {
   const { results } = await env.DB.prepare('SELECT * FROM ads ORDER BY id DESC').all();
   return json({ ads: results });
+}
+async function adminUpdateAd(request, env, id) {
+  const b = await request.json();
+  const ad = await env.DB.prepare('SELECT * FROM ads WHERE id = ?').bind(id).first();
+  if (!ad) return json({ error: 'Ad not found.' }, 404);
+
+  let website = ad.website_url;
+  if (b.websiteUrl !== undefined) {
+    website = b.websiteUrl && b.websiteUrl.trim() ? b.websiteUrl.trim() : null;
+    if (website && !/^https?:\/\//i.test(website)) website = 'https://' + website;
+  }
+
+  let image = ad.image_data;
+  if (b.imageData !== undefined) {
+    if (b.imageData === null) image = null; // admin explicitly removed the image
+    else if (typeof b.imageData === 'string' && b.imageData.startsWith('data:image/')) image = b.imageData;
+  }
+
+  await env.DB.prepare(
+    `UPDATE ads SET business_name=?, description=?, icon=?, phone=?, email=?, website_url=?, whatsapp=?, image_data=? WHERE id=?`
+  ).bind(
+    b.businessName ?? ad.business_name,
+    b.description ?? ad.description,
+    b.icon ?? ad.icon,
+    b.phone ?? ad.phone,
+    b.email ?? ad.email,
+    website,
+    b.whatsapp !== undefined ? (b.whatsapp || null) : ad.whatsapp,
+    image,
+    id
+  ).run();
+
+  return json({ ok: true });
 }
 async function adminApproveAd(env, id) {
   const setting = await env.DB.prepare("SELECT value FROM settings WHERE key = 'ad_duration_days'").first();
