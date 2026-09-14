@@ -10,7 +10,7 @@ not_found_handling = "single-page-application"
 [[d1_databases]]
 binding = "DB"
 database_name = "farasdanga-db"
-database_id = "YOUR_NEW_DATABASE_ID"
+database_id = "64bf5903-2047-4a62-afa7-eb261897c18c"
 
 [vars]
 SITE_URL = "https://farasdanga.YOUR_SUBDOMAIN.workers.dev"
