@@ -104,6 +104,8 @@ async function adminDiagnostics(request, env) {
   try {
     const { results } = await env.DB.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
     checks.tables_found = results.map(r => r.name);
+    const adsCols = await env.DB.prepare("PRAGMA table_info(ads)").all();
+    checks.ads_columns = adsCols.results.map(c => c.name);
   } catch (e) {
     checks.tables_found = 'ERROR — ' + String(e);
   }
@@ -149,7 +151,7 @@ async function listProviders(env) {
 }
 async function listAds(env) {
   const { results } = await env.DB.prepare(
-    "SELECT id, business_name, description, icon, phone FROM ads WHERE status = 'approved' AND expires_at > datetime('now') ORDER BY id DESC"
+    "SELECT id, business_name, description, icon, phone, image_data FROM ads WHERE status = 'approved' AND expires_at > datetime('now') ORDER BY id DESC"
   ).all();
   return json({ ads: results });
 }
@@ -178,6 +180,10 @@ async function suggestProvider(request, env) {
 }
 
 /* ============================== PUBLIC: PAID BUSINESS ADS ============================== */
+// The client already compresses images to ~1000px JPEG @0.72 quality before
+// sending, so this is just a safety net against something unexpectedly large.
+const MAX_IMAGE_DATA_URL_LENGTH = 1_500_000; // ~1.1MB decoded
+
 async function createAdOrder(request, env) {
   // Fail fast with a clear message instead of letting Razorpay return a
   // confusing "Authentication failed" when keys simply aren't set.
@@ -186,8 +192,19 @@ async function createAdOrder(request, env) {
   }
 
   const body = await request.json();
-  const { businessName, description, phone, email, icon } = body;
+  const { businessName, description, phone, email, icon, imageData } = body;
   if (!businessName || !phone) return json({ error: 'Business name and phone are required.' }, 400);
+
+  let image = null;
+  if (imageData) {
+    if (typeof imageData !== 'string' || !imageData.startsWith('data:image/')) {
+      return json({ error: 'Invalid image data.' }, 400);
+    }
+    if (imageData.length > MAX_IMAGE_DATA_URL_LENGTH) {
+      return json({ error: 'Image is too large — please choose a smaller one.' }, 400);
+    }
+    image = imageData;
+  }
 
   const priceSetting = await env.DB.prepare("SELECT value FROM settings WHERE key = 'ad_price_rupees'").first();
   const rupees = Number(priceSetting?.value || 499);
@@ -203,9 +220,9 @@ async function createAdOrder(request, env) {
   if (!order.id) return json({ error: 'Could not create payment order.', detail: order }, 502);
 
   const result = await env.DB.prepare(
-    `INSERT INTO ads (business_name, description, icon, phone, email, amount, razorpay_order_id, status)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 'pending_payment')`
-  ).bind(businessName, description || '', icon || '📢', phone, email || '', amountPaise, order.id).run();
+    `INSERT INTO ads (business_name, description, icon, phone, email, image_data, amount, razorpay_order_id, status)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending_payment')`
+  ).bind(businessName, description || '', icon || '📢', phone, email || '', image, amountPaise, order.id).run();
 
   return json({ adId: result.meta.last_row_id, orderId: order.id, amount: amountPaise, keyId: env.RAZORPAY_KEY_ID });
 }
@@ -304,8 +321,41 @@ async function adminApproveAd(env, id) {
   return json({ ok: true });
 }
 async function adminRejectAd(env, id) {
-  await env.DB.prepare("UPDATE ads SET status = 'rejected' WHERE id = ?").bind(id).run();
-  return json({ ok: true });
+  const ad = await env.DB.prepare('SELECT * FROM ads WHERE id = ?').bind(id).first();
+  if (!ad) return json({ error: 'Ad not found.' }, 404);
+
+  // Only attempt a refund if a payment was actually captured for this ad.
+  if (!ad.razorpay_payment_id) {
+    await env.DB.prepare("UPDATE ads SET status = 'rejected' WHERE id = ?").bind(id).run();
+    return json({ ok: true, refunded: false });
+  }
+
+  if (!env.RAZORPAY_KEY_ID || !env.RAZORPAY_KEY_SECRET) {
+    await env.DB.prepare("UPDATE ads SET status = 'rejected', refund_status = 'failed' WHERE id = ?").bind(id).run();
+    return json({ ok: true, refunded: false, warning: 'Razorpay keys are not set — could not process refund automatically. Refund this payment manually from the Razorpay dashboard.' });
+  }
+
+  try {
+    const auth = btoa(`${env.RAZORPAY_KEY_ID}:${env.RAZORPAY_KEY_SECRET}`);
+    const refundRes = await fetch(`https://api.razorpay.com/v1/payments/${ad.razorpay_payment_id}/refund`, {
+      method: 'POST',
+      headers: { 'Authorization': `Basic ${auth}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount: ad.amount })
+    });
+    const refund = await refundRes.json();
+
+    if (refund.id) {
+      await env.DB.prepare("UPDATE ads SET status = 'rejected', refund_status = 'refunded', razorpay_refund_id = ? WHERE id = ?")
+        .bind(refund.id, id).run();
+      return json({ ok: true, refunded: true });
+    } else {
+      await env.DB.prepare("UPDATE ads SET status = 'rejected', refund_status = 'failed' WHERE id = ?").bind(id).run();
+      return json({ ok: true, refunded: false, warning: 'Refund failed: ' + (refund.error?.description || JSON.stringify(refund)) });
+    }
+  } catch (e) {
+    await env.DB.prepare("UPDATE ads SET status = 'rejected', refund_status = 'failed' WHERE id = ?").bind(id).run();
+    return json({ ok: true, refunded: false, warning: 'Refund error: ' + String(e) });
+  }
 }
 async function adminDeleteAd(env, id) {
   await env.DB.prepare('DELETE FROM ads WHERE id = ?').bind(id).run();

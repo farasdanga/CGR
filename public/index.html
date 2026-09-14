@@ -61,20 +61,26 @@
         }
 
         /* ---------- hero ---------- */
-        .hero{ position:relative; background:linear-gradient(180deg,#DCEEFA 0%, var(--sky) 60%, var(--paper) 100%); padding:64px 0 0; overflow:hidden; }
-        .hero-inner{ text-align:center; position:relative; z-index:2; padding-bottom:40px; }
+        .hero{
+            position:relative; overflow:hidden; padding:72px 0 64px;
+            background:
+                linear-gradient(180deg, rgba(6,24,44,.72) 0%, rgba(6,24,44,.62) 45%, rgba(6,24,44,.8) 100%),
+                url('/assets/hero-chandannagar.jpg') center 62% / cover no-repeat;
+            min-height:560px; display:flex; align-items:center;
+        }
+        .hero-inner{ text-align:center; position:relative; z-index:2; width:100%; }
         .badge-free{
-            display:inline-flex; align-items:center; gap:8px; background:#fff; border:1px solid var(--line);
+            display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,.95); border:1px solid rgba(255,255,255,.6);
             padding:8px 16px; border-radius:999px; font-size:.82rem; font-weight:700; color:var(--leaf); letter-spacing:.02em;
-            box-shadow:0 2px 10px rgba(11,42,74,.06); margin-bottom:26px;
+            box-shadow:0 2px 14px rgba(0,0,0,.25); margin-bottom:26px;
         }
         .dot-pulse{ width:8px; height:8px; border-radius:50%; background:var(--leaf); position:relative; }
         .dot-pulse::after{ content:''; position:absolute; inset:-4px; border-radius:50%; background:var(--leaf); opacity:.4; animation:pulseDot 1.8s ease-out infinite; }
         @keyframes pulseDot{ 0%{ transform:scale(.6); opacity:.5;} 100%{ transform:scale(2.4); opacity:0;} }
 
-        .hero h1{ font-size:clamp(2.2rem,5.4vw,3.7rem); line-height:1.12; font-weight:600; color:var(--navy); margin:0 0 20px; letter-spacing:-.01em; }
-        .hero h1 em{ font-style:italic; font-weight:500; color:var(--terracotta); }
-        .hero p.lead{ font-size:1.18rem; color:var(--ink-soft); max-width:600px; margin:0 auto 36px; line-height:1.6; }
+        .hero h1{ font-size:clamp(2.2rem,5.4vw,3.7rem); line-height:1.12; font-weight:600; color:#fff; margin:0 0 20px; letter-spacing:-.01em; text-shadow:0 2px 18px rgba(0,0,0,.35); }
+        .hero h1 em{ font-style:italic; font-weight:500; color:var(--marigold); }
+        .hero p.lead{ font-size:1.18rem; color:#EAF1F8; max-width:600px; margin:0 auto 36px; line-height:1.6; text-shadow:0 1px 10px rgba(0,0,0,.3); }
 
         .search-card{
             max-width:600px; margin:0 auto; background:#fff; border-radius:20px; padding:8px;
@@ -89,17 +95,8 @@
 
         .stat-strip{ display:flex; justify-content:center; gap:56px; flex-wrap:wrap; margin-top:44px; position:relative; z-index:2; }
         .stat{ text-align:center; }
-        .stat .num{ font-family:'Fraunces',serif; font-size:2.1rem; font-weight:700; color:var(--navy); }
-        .stat .lbl{ font-size:.85rem; color:var(--ink-soft); font-weight:500; }
-
-        .horizon{ position:relative; width:100%; height:180px; margin-top:50px; }
-        .horizon svg{ width:100%; height:100%; display:block; }
-        .sun-glow{ animation:sunGlow 4s ease-in-out infinite; transform-origin:center; }
-        @keyframes sunGlow{ 0%,100%{ filter:drop-shadow(0 0 6px rgba(243,169,59,.5)); } 50%{ filter:drop-shadow(0 0 18px rgba(243,169,59,.85)); } }
-        .boat{ animation:sailBoat 16s linear infinite; }
-        @keyframes sailBoat{ 0%{ transform:translateX(-8%);} 50%{ transform:translateX(94%) scaleX(-1) translateX(0);} 50.01%{ transform:translateX(94%) scaleX(-1) translateX(0);} 100%{ transform:translateX(-8% ) scaleX(1);} }
-        .water-shimmer{ animation:shimmer 6s ease-in-out infinite; }
-        @keyframes shimmer{ 0%,100%{ opacity:.5; } 50%{ opacity:1; } }
+        .stat .num{ font-family:'Fraunces',serif; font-size:2.1rem; font-weight:700; color:#fff; text-shadow:0 2px 10px rgba(0,0,0,.35); }
+        .stat .lbl{ font-size:.85rem; color:#DCE7F0; font-weight:500; }
 
         section{ padding:76px 0; }
         .section-head{ text-align:center; max-width:620px; margin:0 auto 48px; }
@@ -259,7 +256,7 @@
         .toast.info{ background:var(--navy); }
 
         @media (prefers-reduced-motion:reduce){
-            .sun-glow, .boat, .water-shimmer, .dot-pulse::after{ animation:none !important; }
+            .dot-pulse::after{ animation:none !important; }
         }
     </style>
 </head>
@@ -306,40 +303,6 @@
                     <div class="stat"><div class="num" id="stat-categories">0</div><div class="lbl">Trades covered</div></div>
                     <div class="stat"><div class="num">₹0</div><div class="lbl">Charged to residents</div></div>
                 </div>
-            </div>
-
-            <div class="horizon" aria-hidden="true">
-                <svg viewBox="0 0 1200 200" preserveAspectRatio="none">
-                    <rect x="0" y="0" width="1200" height="200" fill="#EAF4FB"/>
-                    <circle class="sun-glow" cx="1000" cy="55" r="34" fill="#F3A93B"/>
-                    <path d="M0 120 L1200 120 L1200 200 L0 200 Z" fill="#0B2A4A"/>
-                    <path class="water-shimmer" d="M0 128 Q60 118 120 128 T240 128 T360 128 T480 128 T600 128 T720 128 T840 128 T960 128 T1080 128 T1200 128" stroke="#2E86AB" stroke-width="2" fill="none" opacity=".6"/>
-                    <path class="water-shimmer" d="M0 145 Q60 138 120 145 T240 145 T360 145 T480 145 T600 145 T720 145 T840 145 T960 145 T1080 145 T1200 145" stroke="#3E6E93" stroke-width="2" fill="none" opacity=".5" style="animation-delay:1s"/>
-                    <g fill="none" stroke="#123a63" stroke-width="3">
-                        <line x1="640" y1="60" x2="640" y2="120"/>
-                        <line x1="900" y1="60" x2="900" y2="120"/>
-                        <path d="M600 120 L640 60 L680 120"/>
-                        <path d="M680 120 L720 60 L760 120"/>
-                        <path d="M760 120 L800 60 L840 120"/>
-                        <path d="M840 120 L860 90 L900 120"/>
-                        <line x1="600" y1="120" x2="900" y2="120"/>
-                    </g>
-                    <g>
-                        <rect x="60" y="60" width="150" height="62" fill="#F3A93B"/>
-                        <rect x="60" y="60" width="150" height="10" fill="#BB4E24"/>
-                        <rect x="80" y="76" width="18" height="26" fill="#EAF4FB" opacity=".85"/>
-                        <rect x="110" y="76" width="18" height="26" fill="#EAF4FB" opacity=".85"/>
-                        <rect x="140" y="76" width="18" height="26" fill="#EAF4FB" opacity=".85"/>
-                        <rect x="170" y="76" width="18" height="26" fill="#EAF4FB" opacity=".85"/>
-                        <rect x="30" y="40" width="6" height="82" fill="#123a63"/>
-                        <circle cx="33" cy="36" r="8" fill="#F3A93B" opacity=".9"/>
-                    </g>
-                    <g class="boat">
-                        <path d="M420 132 L470 132 L460 144 L430 144 Z" fill="#123a63"/>
-                        <line x1="445" y1="132" x2="445" y2="112" stroke="#123a63" stroke-width="2"/>
-                        <path d="M446 114 L462 128 L446 128 Z" fill="#BB4E24"/>
-                    </g>
-                </svg>
             </div>
         </section>
 
@@ -495,7 +458,16 @@
                 <div class="field"><label>Icon / emoji (optional)</label><input id="ad-icon" placeholder="📢"></div>
                 <div class="field"><label>Contact phone</label><input id="ad-phone" required></div>
                 <div class="field"><label>Email (optional)</label><input id="ad-email" type="email"></div>
-                <p style="font-size:.8rem; color:var(--ink-soft); margin:0 0 16px;">After payment, your ad is reviewed by our team before it goes live.</p>
+                <div class="field">
+                    <label>Banner image (optional)</label>
+                    <input id="ad-image-input" type="file" accept="image/*" onchange="handleAdImageSelect(event)">
+                    <div id="ad-image-preview-wrap" style="display:none; margin-top:10px;">
+                        <img id="ad-image-preview" style="width:100%; max-height:160px; object-fit:cover; border-radius:10px; border:1px solid var(--line);">
+                        <button type="button" onclick="clearAdImage()" style="margin-top:6px; background:none; border:none; color:var(--terracotta); font-size:.82rem; font-weight:600;">Remove image</button>
+                    </div>
+                    <p style="font-size:.78rem; color:var(--ink-soft); margin:6px 0 0;">Shown at the top of your ad card. Compressed automatically — no need to resize yourself.</p>
+                </div>
+                <p style="font-size:.8rem; color:var(--ink-soft); margin:0 0 16px;">After payment, your ad — including this image — is reviewed by our team before it goes live. If it's declined, your payment is automatically refunded.</p>
                 <button type="submit" id="ad-submit-btn" class="submit-btn">Pay &amp; submit ad</button>
             </form>
         </div>
@@ -666,12 +638,15 @@
         if (!ads.length) { container.innerHTML = ''; empty.style.display = 'block'; return; }
         empty.style.display = 'none';
         container.innerHTML = ads.map(a => `
-            <div class="ad-card">
+            <div class="ad-card" ${a.image_data ? 'style="padding-top:0;"' : ''}>
                 <div class="ad-ribbon">AD</div>
-                <div class="ad-icon">${a.icon || '📢'}</div>
-                <h3>${a.business_name}</h3>
-                <p>${a.description || ''}</p>
-                <a href="${telHref(a.phone)}" class="call-btn" style="display:block; text-decoration:none;">📞 ${a.phone}</a>
+                ${a.image_data ? `<img src="${a.image_data}" style="width:calc(100% + 44px); margin:0 -22px 14px; display:block; height:120px; object-fit:cover; border-radius:18px 18px 0 0;">` : ''}
+                <div style="${a.image_data ? 'padding:0 0 4px;' : ''}">
+                    <div class="ad-icon">${a.icon || '📢'}</div>
+                    <h3>${a.business_name}</h3>
+                    <p>${a.description || ''}</p>
+                    <a href="${telHref(a.phone)}" class="call-btn" style="display:block; text-decoration:none;">📞 ${a.phone}</a>
+                </div>
             </div>`).join('');
     }
 
@@ -700,11 +675,49 @@
         finally { btn.disabled = false; btn.textContent = 'Submit for review — free'; }
     }
 
+    let adImageDataUrl = null;
+
     function openAdModal() {
         document.getElementById('ad-form').reset();
+        clearAdImage();
         document.getElementById('ad-price-note').textContent = `Ad price: ₹${SETTINGS.ad_price_rupees || 499} for ${SETTINGS.ad_duration_days || 30} days, reviewed before going live.`;
         openModal('ad-modal');
     }
+
+    function clearAdImage() {
+        adImageDataUrl = null;
+        document.getElementById('ad-image-input').value = '';
+        document.getElementById('ad-image-preview-wrap').style.display = 'none';
+        document.getElementById('ad-image-preview').src = '';
+    }
+
+    // Compresses/resizes the chosen image client-side (max 1000px wide, JPEG ~0.72
+    // quality) so it stays small enough to store as a data URL and upload quickly.
+    function handleAdImageSelect(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (!file.type.startsWith('image/')) { toast('Please choose an image file.', 'error'); clearAdImage(); return; }
+
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const img = new Image();
+            img.onload = () => {
+                const maxW = 1000;
+                const scale = Math.min(1, maxW / img.width);
+                const w = Math.round(img.width * scale);
+                const h = Math.round(img.height * scale);
+                const canvas = document.createElement('canvas');
+                canvas.width = w; canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                adImageDataUrl = canvas.toDataURL('image/jpeg', 0.72);
+                document.getElementById('ad-image-preview').src = adImageDataUrl;
+                document.getElementById('ad-image-preview-wrap').style.display = 'block';
+            };
+            img.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
     async function submitAd(e) {
         e.preventDefault();
         const btn = document.getElementById('ad-submit-btn');
@@ -715,7 +728,8 @@
                 description: document.getElementById('ad-desc').value.trim(),
                 icon: document.getElementById('ad-icon').value.trim(),
                 phone: document.getElementById('ad-phone').value.trim(),
-                email: document.getElementById('ad-email').value.trim()
+                email: document.getElementById('ad-email').value.trim(),
+                imageData: adImageDataUrl
             })});
             const rzp = new Razorpay({
                 key: order.keyId, amount: order.amount, currency: 'INR', name: 'Farasdanga',
@@ -898,23 +912,33 @@
 
     function renderAdminAds(ads) {
         const badge = { pending_payment: 'pill-grey', pending_review: 'pill-amber', approved: 'pill-green', rejected: 'pill-red', expired: 'pill-grey' };
+        const refundBadge = { refunded: 'pill-green', failed: 'pill-red', pending: 'pill-amber' };
         const rows = ads.map(a => `
             <div class="admin-panel-card" style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px;">
-                <div>
-                    <p style="font-weight:700; margin:0 0 4px; color:var(--navy);">${a.icon || '📢'} ${a.business_name}</p>
-                    <p style="font-size:.85rem; color:var(--ink-soft); margin:0;">${a.phone} · ₹${(a.amount/100).toFixed(0)} · ${new Date(a.created_at).toLocaleDateString()}</p>
-                    <p style="font-size:.85rem; color:var(--ink-soft); margin:4px 0 0;">${a.description || ''}</p>
+                <div style="display:flex; gap:12px; align-items:flex-start;">
+                    ${a.image_data ? `<img src="${a.image_data}" style="width:64px; height:64px; object-fit:cover; border-radius:10px; border:1px solid var(--line); flex-shrink:0;">` : ''}
+                    <div>
+                        <p style="font-weight:700; margin:0 0 4px; color:var(--navy);">${a.icon || '📢'} ${a.business_name}</p>
+                        <p style="font-size:.85rem; color:var(--ink-soft); margin:0;">${a.phone} · ₹${(a.amount/100).toFixed(0)} · ${new Date(a.created_at).toLocaleDateString()}</p>
+                        <p style="font-size:.85rem; color:var(--ink-soft); margin:4px 0 0;">${a.description || ''}</p>
+                    </div>
                 </div>
-                <div style="display:flex; align-items:center; gap:8px;">
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                     <span class="pill ${badge[a.status]||'pill-grey'}">${a.status.replace('_',' ')}</span>
-                    ${a.status === 'pending_review' ? `<button class="link-btn green" onclick="approveAd(${a.id})">Approve</button><button class="link-btn red" onclick="rejectAd(${a.id})">Reject</button>` : ''}
+                    ${a.refund_status ? `<span class="pill ${refundBadge[a.refund_status]||'pill-grey'}">refund: ${a.refund_status}</span>` : ''}
+                    ${a.status === 'pending_review' ? `<button class="link-btn green" onclick="approveAd(${a.id})">Approve</button><button class="link-btn red" onclick="rejectAd(${a.id})">Reject &amp; refund</button>` : ''}
                     <button class="link-btn red" onclick="deleteAd(${a.id})">Delete</button>
                 </div>
             </div>`).join('');
         return `<h3 style="font-family:'Fraunces',serif; margin:0 0 16px; color:var(--navy);">Business ads</h3>${rows || '<p style="color:var(--ink-soft);">No ads yet.</p>'}`;
     }
     async function approveAd(id) { await api(`/admin/ads/${id}/approve`, { method: 'POST' }); switchAdminTab('ads'); loadAds(); toast('Ad approved — now live.'); }
-    async function rejectAd(id) { await api(`/admin/ads/${id}/reject`, { method: 'POST' }); switchAdminTab('ads'); toast('Ad rejected.', 'info'); }
+    async function rejectAd(id) {
+        if (!confirm('Reject this ad? If it was paid, the payment will be refunded automatically.')) return;
+        const result = await api(`/admin/ads/${id}/reject`, { method: 'POST' });
+        switchAdminTab('ads');
+        toast(result.refunded ? 'Ad rejected — payment refunded.' : 'Ad rejected.', 'info');
+    }
     async function deleteAd(id) { if (!confirm('Delete this ad?')) return; await api(`/admin/ads/${id}`, { method: 'DELETE' }); switchAdminTab('ads'); loadAds(); toast('Deleted.', 'info'); }
 
     function renderAdminContent(settings) {
