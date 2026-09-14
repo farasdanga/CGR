@@ -37,6 +37,7 @@ async function router(request, env, url) {
   // ---- Admin ----
   if (pathname === '/api/admin/login' && method === 'POST') return adminLogin(request, env);
   if (pathname === '/api/admin/logout' && method === 'POST') return adminLogout(request, env);
+  if (pathname === '/api/admin/diagnostics' && method === 'GET') return adminOnly(request, env, adminDiagnostics);
   if (pathname === '/api/admin/dashboard' && method === 'GET') return adminOnly(request, env, adminDashboard);
   if (pathname === '/api/admin/providers' && method === 'GET') return adminOnly(request, env, adminListProviders);
   if (pathname === '/api/admin/providers' && method === 'POST') return adminOnly(request, env, (r, e) => adminSaveProvider(r, e, null));
@@ -59,7 +60,7 @@ function idFromPath(pathname) { return Number(pathname.match(/\d+/)[0]); }
 
 /* ============================== HELPERS ============================== */
 function json(data, status = 200, extraHeaders = {}) {
-  return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', ...extraHeaders } });
+  return new Response(JSON.stringify(data, null, 2), { status, headers: { 'Content-Type': 'application/json', ...extraHeaders } });
 }
 function getCookie(request, name) {
   const cookie = request.headers.get('Cookie') || '';
@@ -81,9 +82,60 @@ async function hmacHex(secret, message) {
 async function adminOnly(request, env, handler) {
   const token = getCookie(request, 'admin_session');
   if (!token) return json({ error: 'Admin login required' }, 401);
-  const row = await env.DB.prepare('SELECT * FROM admin_sessions WHERE token = ? AND expires_at > datetime("now")').bind(token).first();
+  const row = await env.DB.prepare("SELECT * FROM admin_sessions WHERE token = ? AND expires_at > datetime('now')").bind(token).first();
   if (!row) return json({ error: 'Admin login required' }, 401);
   return handler(request, env);
+}
+
+/* ============================== ADMIN: DIAGNOSTICS ============================== */
+// Visit /api/admin/diagnostics in your browser right after logging into Admin
+// (same browser, same tab is fine) to see exactly what's configured and what
+// isn't — no DevTools needed.
+async function adminDiagnostics(request, env) {
+  const checks = {};
+
+  try {
+    await env.DB.prepare('SELECT 1').first();
+    checks.database = 'OK — connected';
+  } catch (e) {
+    checks.database = 'ERROR — ' + String(e);
+  }
+
+  try {
+    const { results } = await env.DB.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
+    checks.tables_found = results.map(r => r.name);
+  } catch (e) {
+    checks.tables_found = 'ERROR — ' + String(e);
+  }
+
+  checks.admin_password_set = !!env.ADMIN_PASSWORD;
+
+  checks.razorpay_key_id_set = !!env.RAZORPAY_KEY_ID;
+  checks.razorpay_key_id_starts_with = env.RAZORPAY_KEY_ID ? env.RAZORPAY_KEY_ID.slice(0, 9) : null;
+  checks.razorpay_key_id_looks_like_test_key = env.RAZORPAY_KEY_ID ? env.RAZORPAY_KEY_ID.startsWith('rzp_test_') : false;
+  checks.razorpay_key_id_looks_like_live_key = env.RAZORPAY_KEY_ID ? env.RAZORPAY_KEY_ID.startsWith('rzp_live_') : false;
+
+  checks.razorpay_key_secret_set = !!env.RAZORPAY_KEY_SECRET;
+  checks.razorpay_key_secret_length = env.RAZORPAY_KEY_SECRET ? env.RAZORPAY_KEY_SECRET.length : 0;
+
+  if (env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET) {
+    try {
+      const auth = btoa(`${env.RAZORPAY_KEY_ID}:${env.RAZORPAY_KEY_SECRET}`);
+      const res = await fetch('https://api.razorpay.com/v1/orders?count=1', {
+        headers: { 'Authorization': `Basic ${auth}` }
+      });
+      const data = await res.json();
+      checks.razorpay_live_auth_test = res.ok
+        ? 'SUCCESS — Razorpay accepted these keys'
+        : 'FAILED — ' + (data.error?.description || JSON.stringify(data));
+    } catch (e) {
+      checks.razorpay_live_auth_test = 'ERROR — ' + String(e);
+    }
+  } else {
+    checks.razorpay_live_auth_test = 'SKIPPED — one or both keys are not set';
+  }
+
+  return json(checks);
 }
 
 /* ============================== PUBLIC: BROWSE ============================== */
@@ -127,6 +179,12 @@ async function suggestProvider(request, env) {
 
 /* ============================== PUBLIC: PAID BUSINESS ADS ============================== */
 async function createAdOrder(request, env) {
+  // Fail fast with a clear message instead of letting Razorpay return a
+  // confusing "Authentication failed" when keys simply aren't set.
+  if (!env.RAZORPAY_KEY_ID || !env.RAZORPAY_KEY_SECRET) {
+    return json({ error: "Payments aren't set up yet — RAZORPAY_KEY_ID and/or RAZORPAY_KEY_SECRET are missing. Check /api/admin/diagnostics." }, 500);
+  }
+
   const body = await request.json();
   const { businessName, description, phone, email, icon } = body;
   if (!businessName || !phone) return json({ error: 'Business name and phone are required.' }, 400);
