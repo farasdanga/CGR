@@ -115,7 +115,12 @@
         .cat-icon{ font-size:2.1rem; margin-bottom:10px; display:inline-block; transition:transform .25s cubic-bezier(.2,.8,.3,1.4); }
         .cat-name{ font-weight:600; font-size:.92rem; color:var(--navy); }
 
-        .how-wrap{ background:var(--navy); border-radius:28px; padding:56px 40px; color:#fff; }
+        .how-wrap{
+            background:
+                linear-gradient(135deg, rgba(11,42,74,.88), rgba(11,42,74,.82)),
+                url('/assets/how-it-works-bg.jpg') center 40% / cover no-repeat;
+            border-radius:28px; padding:56px 40px; color:#fff;
+        }
         .how-wrap .section-head h2, .how-wrap .section-head p{ color:#fff; }
         .how-wrap .section-head p{ color:#C6D5E4; }
         .how-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:30px; }
@@ -173,7 +178,10 @@
         .ad-card p{ font-size:.88rem; color:var(--ink-soft); margin:0 0 16px; line-height:1.5; }
 
         .cta-banner{
-            background:linear-gradient(120deg,var(--terracotta),var(--marigold)); border-radius:28px; padding:56px 40px;
+            background:
+                linear-gradient(120deg, rgba(187,78,36,.86), rgba(243,169,59,.82)),
+                url('/assets/cta-bg.jpg') center 30% / cover no-repeat;
+            border-radius:28px; padding:56px 40px;
             text-align:center; color:#fff; position:relative; overflow:hidden;
         }
         .cta-banner h2{ font-family:'Fraunces',serif; font-size:clamp(1.6rem,3vw,2.2rem); margin:0 0 12px; font-weight:600; }
@@ -181,7 +189,12 @@
         .cta-banner .btn-primary{ background:#fff; color:var(--terracotta); box-shadow:0 8px 24px rgba(0,0,0,.15); }
         .cta-banner .btn-primary:hover{ background:#fff; transform:translateY(-2px) scale(1.03); }
 
-        footer{ background:var(--navy); color:#B9CADA; padding:60px 0 30px; }
+        footer{
+            background:
+                linear-gradient(180deg, rgba(11,42,74,.9), rgba(6,24,44,.94)),
+                url('/assets/footer-bg.jpg') center 35% / cover no-repeat;
+            color:#B9CADA; padding:60px 0 30px;
+        }
         .foot-grid{ display:grid; grid-template-columns:2fr 1fr 1fr; gap:40px; margin-bottom:40px; }
         @media (max-width:760px){ .foot-grid{ grid-template-columns:1fr; gap:28px; } }
         .foot-brand{ display:flex; align-items:center; gap:10px; margin-bottom:14px; }
@@ -458,6 +471,8 @@
                 <div class="field"><label>Icon / emoji (optional)</label><input id="ad-icon" placeholder="📢"></div>
                 <div class="field"><label>Contact phone</label><input id="ad-phone" required></div>
                 <div class="field"><label>Email (optional)</label><input id="ad-email" type="email"></div>
+                <div class="field"><label>WhatsApp (optional)</label><input id="ad-whatsapp" placeholder="Same as phone if left blank"></div>
+                <div class="field"><label>Website / profile link (optional)</label><input id="ad-website" placeholder="e.g. instagram.com/yourshop"></div>
                 <div class="field">
                     <label>Banner image (optional)</label>
                     <input id="ad-image-input" type="file" accept="image/*" onchange="handleAdImageSelect(event)">
@@ -491,6 +506,13 @@
                 </div>
                 <button type="submit" class="submit-btn">Login</button>
             </form>
+        </div>
+    </div>
+
+    <div id="ad-detail-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width:520px;">
+            <div class="modal-head"><h3>Ad details</h3><button onclick="closeModal('ad-detail-modal')">✕</button></div>
+            <div class="modal-body" id="ad-detail-body"></div>
         </div>
     </div>
 
@@ -637,17 +659,32 @@
         const empty = document.getElementById('ads-empty');
         if (!ads.length) { container.innerHTML = ''; empty.style.display = 'block'; return; }
         empty.style.display = 'none';
-        container.innerHTML = ads.map(a => `
-            <div class="ad-card" ${a.image_data ? 'style="padding-top:0;"' : ''}>
+        container.innerHTML = ads.map(a => {
+            const waNumber = a.whatsapp || a.phone;
+            // Primary click target: prefer the business's own link, then WhatsApp, then a plain call.
+            const primaryHref = a.website_url ? a.website_url : (waNumber ? waHref(waNumber) : telHref(a.phone));
+            const primaryNewTab = !!a.website_url || !!waNumber;
+            return `
+            <div class="ad-card" style="${a.image_data ? 'padding-top:0;' : ''} cursor:pointer;" onclick="openAdLink('${escapeAttr(primaryHref)}', ${primaryNewTab})">
                 <div class="ad-ribbon">AD</div>
                 ${a.image_data ? `<img src="${a.image_data}" style="width:calc(100% + 44px); margin:0 -22px 14px; display:block; height:120px; object-fit:cover; border-radius:18px 18px 0 0;">` : ''}
                 <div style="${a.image_data ? 'padding:0 0 4px;' : ''}">
                     <div class="ad-icon">${a.icon || '📢'}</div>
                     <h3>${a.business_name}</h3>
                     <p>${a.description || ''}</p>
-                    <a href="${telHref(a.phone)}" class="call-btn" style="display:block; text-decoration:none;">📞 ${a.phone}</a>
+                    <div style="display:grid; grid-template-columns:${waNumber ? '1fr 1fr' : '1fr'}; gap:8px; margin-top:4px;" onclick="event.stopPropagation()">
+                        <a href="${telHref(a.phone)}" class="call-btn" style="text-decoration:none;">📞 Call</a>
+                        ${waNumber ? `<a href="${waHref(waNumber)}" target="_blank" class="wa-btn" style="text-decoration:none; text-align:center; padding:12px; border-radius:12px;">WhatsApp</a>` : ''}
+                    </div>
+                    ${a.website_url ? `<a href="${a.website_url}" target="_blank" onclick="event.stopPropagation()" style="display:block; text-align:center; margin-top:8px; font-size:.82rem; font-weight:600; color:var(--river);">Visit ${a.website_url.replace(/^https?:\/\//,'').replace(/\/$/,'')} →</a>` : ''}
                 </div>
-            </div>`).join('');
+            </div>`;
+        }).join('');
+    }
+    function escapeAttr(str) { return (str || '').replace(/'/g, "&#39;"); }
+    function openAdLink(href, newTab) {
+        if (newTab) window.open(href, '_blank');
+        else window.location.href = href;
     }
 
     function openSuggestModal() {
@@ -729,6 +766,8 @@
                 icon: document.getElementById('ad-icon').value.trim(),
                 phone: document.getElementById('ad-phone').value.trim(),
                 email: document.getElementById('ad-email').value.trim(),
+                whatsapp: document.getElementById('ad-whatsapp').value.trim(),
+                websiteUrl: document.getElementById('ad-website').value.trim(),
                 imageData: adImageDataUrl
             })});
             const rzp = new Razorpay({
@@ -911,21 +950,23 @@
     async function deleteCategory(id) { if (!confirm('Delete this category?')) return; await api(`/admin/categories/${id}`, { method: 'DELETE' }); switchAdminTab('categories'); loadCategories(); toast('Deleted.', 'info'); }
 
     function renderAdminAds(ads) {
+        window._adsCache = ads;
         const badge = { pending_payment: 'pill-grey', pending_review: 'pill-amber', approved: 'pill-green', rejected: 'pill-red', expired: 'pill-grey' };
         const refundBadge = { refunded: 'pill-green', failed: 'pill-red', pending: 'pill-amber' };
         const rows = ads.map(a => `
             <div class="admin-panel-card" style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px;">
-                <div style="display:flex; gap:12px; align-items:flex-start;">
+                <div style="display:flex; gap:12px; align-items:flex-start; cursor:pointer;" onclick="openAdDetail(${a.id})">
                     ${a.image_data ? `<img src="${a.image_data}" style="width:64px; height:64px; object-fit:cover; border-radius:10px; border:1px solid var(--line); flex-shrink:0;">` : ''}
                     <div>
                         <p style="font-weight:700; margin:0 0 4px; color:var(--navy);">${a.icon || '📢'} ${a.business_name}</p>
                         <p style="font-size:.85rem; color:var(--ink-soft); margin:0;">${a.phone} · ₹${(a.amount/100).toFixed(0)} · ${new Date(a.created_at).toLocaleDateString()}</p>
-                        <p style="font-size:.85rem; color:var(--ink-soft); margin:4px 0 0;">${a.description || ''}</p>
+                        <p style="font-size:.85rem; color:var(--ink-soft); margin:4px 0 0;">${(a.description || '').slice(0, 90)}${(a.description||'').length > 90 ? '…' : ''}</p>
                     </div>
                 </div>
                 <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                     <span class="pill ${badge[a.status]||'pill-grey'}">${a.status.replace('_',' ')}</span>
                     ${a.refund_status ? `<span class="pill ${refundBadge[a.refund_status]||'pill-grey'}">refund: ${a.refund_status}</span>` : ''}
+                    <button class="link-btn blue" onclick="openAdDetail(${a.id})">View / Edit</button>
                     ${a.status === 'pending_review' ? `<button class="link-btn green" onclick="approveAd(${a.id})">Approve</button><button class="link-btn red" onclick="rejectAd(${a.id})">Reject &amp; refund</button>` : ''}
                     <button class="link-btn red" onclick="deleteAd(${a.id})">Delete</button>
                 </div>
@@ -940,6 +981,81 @@
         toast(result.refunded ? 'Ad rejected — payment refunded.' : 'Ad rejected.', 'info');
     }
     async function deleteAd(id) { if (!confirm('Delete this ad?')) return; await api(`/admin/ads/${id}`, { method: 'DELETE' }); switchAdminTab('ads'); loadAds(); toast('Deleted.', 'info'); }
+
+    /* ---------- admin: ad detail / edit modal ---------- */
+    let adDetailImageOverride = undefined; // undefined = unchanged, null = removed, string = replaced
+    function openAdDetail(id) {
+        const a = window._adsCache.find(x => x.id === id);
+        if (!a) return;
+        adDetailImageOverride = undefined;
+        const badge = { pending_payment: 'pill-grey', pending_review: 'pill-amber', approved: 'pill-green', rejected: 'pill-red', expired: 'pill-grey' };
+        document.getElementById('ad-detail-body').innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+                <span class="pill ${badge[a.status]||'pill-grey'}">${a.status.replace('_',' ')}</span>
+                <span style="font-size:.8rem; color:var(--ink-soft);">Paid ₹${(a.amount/100).toFixed(0)} · Submitted ${new Date(a.created_at).toLocaleString()}${a.expires_at ? ' · Live until ' + new Date(a.expires_at).toLocaleDateString() : ''}</span>
+            </div>
+            <div class="field">
+                <label>Banner image</label>
+                <div id="ad-detail-img-wrap">${a.image_data ? `<img id="ad-detail-img" src="${a.image_data}" style="width:100%; max-height:160px; object-fit:cover; border-radius:10px; border:1px solid var(--line); margin-bottom:6px;">` : '<p style="font-size:.82rem; color:var(--ink-soft);">No image on this ad.</p>'}</div>
+                <input type="file" accept="image/*" onchange="handleAdDetailImageSelect(event)">
+                ${a.image_data ? `<button type="button" onclick="removeAdDetailImage()" style="margin-top:6px; background:none; border:none; color:var(--terracotta); font-size:.8rem; font-weight:600;">Remove image</button>` : ''}
+            </div>
+            <div class="field"><label>Business name</label><input id="adf-name" value="${escapeAttr(a.business_name)}"></div>
+            <div class="field"><label>Description</label><textarea id="adf-desc" rows="2">${a.description || ''}</textarea></div>
+            <div class="field"><label>Icon / emoji</label><input id="adf-icon" value="${escapeAttr(a.icon || '')}" style="width:80px;"></div>
+            <div class="field"><label>Phone</label><input id="adf-phone" value="${escapeAttr(a.phone)}"></div>
+            <div class="field"><label>Email</label><input id="adf-email" value="${escapeAttr(a.email || '')}"></div>
+            <div class="field"><label>WhatsApp</label><input id="adf-whatsapp" value="${escapeAttr(a.whatsapp || '')}"></div>
+            <div class="field"><label>Website / profile link</label><input id="adf-website" value="${escapeAttr(a.website_url || '')}"></div>
+            ${a.status === 'rejected' ? `<p style="font-size:.82rem; color:var(--ink-soft);">Refund: ${a.refund_status || 'not applicable'}${a.razorpay_refund_id ? ' (' + a.razorpay_refund_id + ')' : ''}</p>` : ''}
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:18px;">
+                <button class="btn btn-primary" style="padding:11px 20px;" onclick="saveAdDetail(${a.id})">Save changes</button>
+                ${a.status === 'pending_review' ? `<button class="btn" style="background:var(--leaf); color:#fff; padding:11px 20px;" onclick="approveAd(${a.id}); closeModal('ad-detail-modal')">Approve</button><button class="btn" style="background:#fbe4e1; color:#B23A2E; padding:11px 20px;" onclick="rejectAd(${a.id}); closeModal('ad-detail-modal')">Reject &amp; refund</button>` : ''}
+            </div>
+        `;
+        openModal('ad-detail-modal');
+    }
+    function handleAdDetailImageSelect(e) {
+        const file = e.target.files[0];
+        if (!file || !file.type.startsWith('image/')) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const img = new Image();
+            img.onload = () => {
+                const maxW = 1000;
+                const scale = Math.min(1, maxW / img.width);
+                const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+                const canvas = document.createElement('canvas');
+                canvas.width = w; canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                adDetailImageOverride = canvas.toDataURL('image/jpeg', 0.72);
+                document.getElementById('ad-detail-img-wrap').innerHTML = `<img src="${adDetailImageOverride}" style="width:100%; max-height:160px; object-fit:cover; border-radius:10px; border:1px solid var(--line); margin-bottom:6px;">`;
+            };
+            img.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+    function removeAdDetailImage() {
+        adDetailImageOverride = null;
+        document.getElementById('ad-detail-img-wrap').innerHTML = '<p style="font-size:.82rem; color:var(--ink-soft);">Image will be removed on save.</p>';
+    }
+    async function saveAdDetail(id) {
+        const body = {
+            businessName: document.getElementById('adf-name').value.trim(),
+            description: document.getElementById('adf-desc').value.trim(),
+            icon: document.getElementById('adf-icon').value.trim(),
+            phone: document.getElementById('adf-phone').value.trim(),
+            email: document.getElementById('adf-email').value.trim(),
+            whatsapp: document.getElementById('adf-whatsapp').value.trim(),
+            websiteUrl: document.getElementById('adf-website').value.trim()
+        };
+        if (adDetailImageOverride !== undefined) body.imageData = adDetailImageOverride;
+        await api(`/admin/ads/${id}`, { method: 'PUT', body: JSON.stringify(body) });
+        closeModal('ad-detail-modal');
+        switchAdminTab('ads');
+        loadAds();
+        toast('Ad updated.');
+    }
 
     function renderAdminContent(settings) {
         return `
