@@ -311,7 +311,6 @@ async function adminDeleteAd(env, id) {
   await env.DB.prepare('DELETE FROM ads WHERE id = ?').bind(id).run();
   return json({ ok: true });
 }
-
 /* ============================== ADMIN: SITE SETTINGS ============================== */
 async function adminSaveSettings(request, env) {
   const body = await request.json();
