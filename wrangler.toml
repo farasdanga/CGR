@@ -2,24 +2,15 @@ name = "farasdanga"
 main = "worker/index.js"
 compatibility_date = "2026-09-14"
 
-# Serves the /public folder as your static site.
-# Requests to /api/* are handled by worker/index.js instead.
 [assets]
 directory = "./public"
 binding = "ASSETS"
 not_found_handling = "single-page-application"
 
-# You already created this — just make sure the database_id below matches
-# what `wrangler d1 list` shows for farasdanga-db.
 [[d1_databases]]
 binding = "DB"
 database_name = "farasdanga-db"
-database_id = "07475cdf-001a-4333-8572-2c7d51b9d8e2"
-
-# Secrets (set with `wrangler secret put NAME` — never write these in this file):
-#   ADMIN_PASSWORD          your admin login password
-#   RAZORPAY_KEY_ID         from Razorpay dashboard (only needed for the paid ad feature)
-#   RAZORPAY_KEY_SECRET     from Razorpay dashboard
+database_id = "YOUR_NEW_DATABASE_ID"
 
 [vars]
-SITE_URL = "https://farasdanga.farasdanga.workers.dev"
+SITE_URL = "https://farasdanga.YOUR_SUBDOMAIN.workers.dev"
