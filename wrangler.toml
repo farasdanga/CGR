@@ -1,4 +1,4 @@
-name = "farasdanga"
+name = "hello"
 main = "worker/index.js"
 compatibility_date = "2026-09-14"
 
