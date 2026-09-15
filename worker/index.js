@@ -25,6 +25,7 @@ async function router(request, env, url) {
   if (pathname === '/api/categories' && method === 'GET') return listCategories(env);
   if (pathname === '/api/providers' && method === 'GET') return listProviders(env);
   if (pathname === '/api/ads' && method === 'GET') return listAds(env);
+  if (pathname === '/api/ad-plans' && method === 'GET') return listAdPlans(env);
   if (pathname === '/api/settings' && method === 'GET') return getSettings(env);
 
   // ---- Public: free provider suggestion (no login, no payment) ----
@@ -53,6 +54,9 @@ async function router(request, env, url) {
   if (pathname.match(/^\/api\/admin\/ads\/\d+\/reject$/) && method === 'POST') return adminOnly(request, env, () => adminRejectAd(env, idFromPath(pathname)));
   if (pathname.match(/^\/api\/admin\/ads\/\d+$/) && method === 'DELETE') return adminOnly(request, env, () => adminDeleteAd(env, idFromPath(pathname)));
   if (pathname === '/api/admin/settings' && method === 'POST') return adminOnly(request, env, adminSaveSettings);
+  if (pathname === '/api/admin/ad-plans' && method === 'GET') return adminOnly(request, env, adminListAdPlans);
+  if (pathname === '/api/admin/ad-plans' && method === 'POST') return adminOnly(request, env, adminSaveAdPlan);
+  if (pathname.match(/^\/api\/admin\/ad-plans\/\d+$/) && method === 'DELETE') return adminOnly(request, env, () => adminDeleteAdPlan(env, idFromPath(pathname)));
 
   return json({ error: 'Not found' }, 404);
 }
@@ -151,18 +155,21 @@ async function listProviders(env) {
   return json({ providers: results });
 }
 async function listAds(env) {
-  // Use datetime(expires_at) rather than a raw string compare — expires_at is
-  // stored as an ISO string (2026-10-14T12:00:00.000Z) while datetime('now')
-  // returns SQLite's own format (2026-10-14 12:00:00); datetime() normalizes
-  // both sides so the comparison is reliable. A NULL expiry (shouldn't happen,
-  // but just in case) is treated as "still live" rather than silently hidden.
+  // expires_at is stored as a plain integer (milliseconds since epoch) — see
+  // adminApproveAd. Comparing two numbers directly sidesteps every date-string
+  // formatting/timezone ambiguity that caused approved ads to vanish before.
+  const nowMs = Date.now();
   const { results } = await env.DB.prepare(
-    `SELECT id, business_name, description, icon, phone, email, website_url, whatsapp, image_data
+    `SELECT id, business_name, description, icon, phone, email, website_url, whatsapp, image_data, placement
      FROM ads
-     WHERE status = 'approved' AND (expires_at IS NULL OR datetime(expires_at) > datetime('now'))
+     WHERE status = 'approved' AND (expires_at IS NULL OR expires_at > ?)
      ORDER BY id DESC`
-  ).all();
+  ).bind(nowMs).all();
   return json({ ads: results });
+}
+async function listAdPlans(env) {
+  const { results } = await env.DB.prepare('SELECT * FROM ad_plans WHERE active = 1 ORDER BY placement, price_rupees').all();
+  return json({ plans: results });
 }
 async function getSettings(env) {
   const { results } = await env.DB.prepare('SELECT * FROM settings').all();
@@ -201,8 +208,15 @@ async function createAdOrder(request, env) {
   }
 
   const body = await request.json();
-  const { businessName, description, phone, email, icon, imageData, websiteUrl, whatsapp } = body;
+  const { planId, businessName, description, phone, email, icon, imageData, websiteUrl, whatsapp } = body;
   if (!businessName || !phone) return json({ error: 'Business name and phone are required.' }, 400);
+  if (!planId) return json({ error: 'Please choose an ad plan.' }, 400);
+
+  // The price, placement and duration always come from the plan record on the
+  // server — never trust a price sent by the client, or anyone could pay ₹1
+  // for a premium banner slot by editing the request.
+  const plan = await env.DB.prepare('SELECT * FROM ad_plans WHERE id = ? AND active = 1').bind(planId).first();
+  if (!plan) return json({ error: 'That ad plan is no longer available. Please choose another.' }, 400);
 
   let image = null;
   if (imageData) {
@@ -221,9 +235,7 @@ async function createAdOrder(request, env) {
     if (!/^https?:\/\//i.test(website)) website = 'https://' + website;
   }
 
-  const priceSetting = await env.DB.prepare("SELECT value FROM settings WHERE key = 'ad_price_rupees'").first();
-  const rupees = Number(priceSetting?.value || 499);
-  const amountPaise = rupees * 100;
+  const amountPaise = plan.price_rupees * 100;
 
   const auth = btoa(`${env.RAZORPAY_KEY_ID}:${env.RAZORPAY_KEY_SECRET}`);
   const orderRes = await fetch('https://api.razorpay.com/v1/orders', {
@@ -235,9 +247,9 @@ async function createAdOrder(request, env) {
   if (!order.id) return json({ error: 'Could not create payment order.', detail: order }, 502);
 
   const result = await env.DB.prepare(
-    `INSERT INTO ads (business_name, description, icon, phone, email, website_url, whatsapp, image_data, amount, razorpay_order_id, status)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending_payment')`
-  ).bind(businessName, description || '', icon || '📢', phone, email || '', website, whatsapp || null, image, amountPaise, order.id).run();
+    `INSERT INTO ads (business_name, description, icon, phone, email, website_url, whatsapp, image_data, amount, placement, duration_days, plan_name, razorpay_order_id, status)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending_payment')`
+  ).bind(businessName, description || '', icon || '📢', phone, email || '', website, whatsapp || null, image, amountPaise, plan.placement, plan.duration_days, plan.name, order.id).run();
 
   return json({ adId: result.meta.last_row_id, orderId: order.id, amount: amountPaise, keyId: env.RAZORPAY_KEY_ID });
 }
@@ -271,7 +283,7 @@ async function adminLogout(request, env) {
 async function adminDashboard(request, env) {
   const providers = await env.DB.prepare("SELECT COUNT(*) as n FROM providers WHERE status = 'approved'").first();
   const pendingProviders = await env.DB.prepare("SELECT COUNT(*) as n FROM providers WHERE status = 'pending'").first();
-  const liveAds = await env.DB.prepare("SELECT COUNT(*) as n FROM ads WHERE status = 'approved' AND (expires_at IS NULL OR datetime(expires_at) > datetime('now'))").first();
+  const liveAds = await env.DB.prepare('SELECT COUNT(*) as n FROM ads WHERE status = \'approved\' AND (expires_at IS NULL OR expires_at > ?)').bind(Date.now()).first();
   const pendingAds = await env.DB.prepare("SELECT COUNT(*) as n FROM ads WHERE status = 'pending_review'").first();
   const revenue = await env.DB.prepare("SELECT COALESCE(SUM(amount),0) as total FROM ads WHERE status IN ('pending_review','approved','expired')").first();
   return json({
@@ -362,10 +374,10 @@ async function adminUpdateAd(request, env, id) {
   return json({ ok: true });
 }
 async function adminApproveAd(env, id) {
-  const setting = await env.DB.prepare("SELECT value FROM settings WHERE key = 'ad_duration_days'").first();
-  const days = Number(setting?.value || 30);
-  const expires = new Date(Date.now() + days * 24 * 3600 * 1000).toISOString();
-  await env.DB.prepare("UPDATE ads SET status = 'approved', starts_at = datetime('now'), expires_at = ? WHERE id = ?").bind(expires, id).run();
+  const ad = await env.DB.prepare('SELECT duration_days FROM ads WHERE id = ?').bind(id).first();
+  const days = Number(ad?.duration_days || 30); // falls back to 30 for any legacy ad predating ad plans
+  const expiresMs = Date.now() + days * 24 * 3600 * 1000;
+  await env.DB.prepare("UPDATE ads SET status = 'approved', starts_at = datetime('now'), expires_at = ? WHERE id = ?").bind(expiresMs, id).run();
   return json({ ok: true });
 }
 async function adminRejectAd(env, id) {
@@ -416,5 +428,29 @@ async function adminSaveSettings(request, env) {
   for (const [key, value] of Object.entries(body)) {
     await env.DB.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').bind(key, value).run();
   }
+  return json({ ok: true });
+}
+
+/* ============================== ADMIN: AD PLANS ============================== */
+async function adminListAdPlans(request, env) {
+  const { results } = await env.DB.prepare('SELECT * FROM ad_plans ORDER BY placement, price_rupees').all();
+  return json({ plans: results });
+}
+async function adminSaveAdPlan(request, env) {
+  const b = await request.json();
+  if (!b.name || !b.placement || !b.durationDays || !b.priceRupees) {
+    return json({ error: 'Name, placement, duration and price are all required.' }, 400);
+  }
+  if (b.id) {
+    await env.DB.prepare('UPDATE ad_plans SET name=?, placement=?, duration_days=?, price_rupees=?, active=? WHERE id=?')
+      .bind(b.name, b.placement, b.durationDays, b.priceRupees, b.active ? 1 : 0, b.id).run();
+  } else {
+    await env.DB.prepare('INSERT INTO ad_plans (name, placement, duration_days, price_rupees, active) VALUES (?, ?, ?, ?, ?)')
+      .bind(b.name, b.placement, b.durationDays, b.priceRupees, b.active === false ? 0 : 1).run();
+  }
+  return json({ ok: true });
+}
+async function adminDeleteAdPlan(env, id) {
+  await env.DB.prepare('DELETE FROM ad_plans WHERE id = ?').bind(id).run();
   return json({ ok: true });
 }

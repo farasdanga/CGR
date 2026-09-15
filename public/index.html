@@ -177,6 +177,33 @@
         .ad-card h3{ font-family:'Fraunces',serif; font-size:1.1rem; margin:0 0 6px; color:var(--navy); }
         .ad-card p{ font-size:.88rem; color:var(--ink-soft); margin:0 0 16px; line-height:1.5; }
 
+        /* banner ad slot (rotates automatically when more than one is live) */
+        .banner-ad{
+            display:flex; align-items:center; gap:22px; background:linear-gradient(120deg,#FFF6EF,#FFFDF9);
+            border:1.5px solid var(--marigold); border-radius:20px; padding:20px 26px; cursor:pointer;
+            transition:transform .18s ease, box-shadow .18s ease;
+        }
+        .banner-ad:hover{ transform:translateY(-3px); box-shadow:0 14px 30px rgba(11,42,74,.1); }
+        .banner-ad img{ width:90px; height:90px; border-radius:14px; object-fit:cover; flex-shrink:0; }
+        .banner-ad .banner-body{ flex:1; min-width:0; }
+        .banner-ad .banner-tag{ font-size:.68rem; font-weight:800; letter-spacing:.06em; color:var(--terracotta); text-transform:uppercase; }
+        .banner-ad h3{ font-family:'Fraunces',serif; margin:2px 0 4px; color:var(--navy); font-size:1.15rem; }
+        .banner-ad p{ margin:0; color:var(--ink-soft); font-size:.9rem; }
+        .banner-dots{ display:flex; gap:6px; justify-content:center; margin-top:10px; }
+        .banner-dots span{ width:7px; height:7px; border-radius:50%; background:var(--line); cursor:pointer; }
+        .banner-dots span.active{ background:var(--marigold); }
+
+        /* popup ad */
+        .popup-ad-overlay{
+            position:fixed; inset:0; z-index:70; background:rgba(11,42,74,.55); display:flex; align-items:center; justify-content:center;
+            padding:16px; opacity:0; visibility:hidden; transition:opacity .3s ease, visibility .3s ease;
+        }
+        .popup-ad-overlay.active{ opacity:1; visibility:visible; }
+        .popup-ad-card{ background:#fff; border-radius:20px; max-width:380px; width:100%; overflow:hidden; box-shadow:0 30px 70px rgba(0,0,0,.35); position:relative; }
+        .popup-ad-card img{ width:100%; height:160px; object-fit:cover; display:block; }
+        .popup-ad-body{ padding:22px; }
+        .popup-ad-close{ position:absolute; top:10px; right:10px; background:rgba(0,0,0,.5); color:#fff; border:none; width:30px; height:30px; border-radius:50%; font-size:1.1rem; cursor:pointer; z-index:2; }
+
         .cta-banner{
             background:
                 linear-gradient(120deg, rgba(187,78,36,.86), rgba(243,169,59,.82)),
@@ -222,6 +249,12 @@
         }
         .field input:focus, .field select:focus, .field textarea:focus{ border-color:var(--river); box-shadow:0 0 0 3px rgba(46,134,171,.15); }
         .note-box{ background:var(--sky); border:1px solid #D2E7F5; border-radius:12px; padding:12px 14px; font-size:.85rem; color:var(--navy); margin-bottom:16px; }
+        .plan-option{ display:flex; justify-content:space-between; align-items:center; gap:10px; border:1.5px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:8px; cursor:pointer; transition:border-color .15s ease, background .15s ease; }
+        .plan-option:hover{ border-color:var(--marigold); }
+        .plan-option.selected{ border-color:var(--river); background:var(--sky); }
+        .plan-option .plan-name{ font-weight:600; color:var(--navy); font-size:.92rem; }
+        .plan-option .plan-meta{ font-size:.78rem; color:var(--ink-soft); }
+        .plan-option .plan-price{ font-weight:700; color:var(--terracotta); white-space:nowrap; }
         .note-box.green{ background:#EEF8EF; border-color:#CFE9D0; color:var(--leaf); }
         .submit-btn{ width:100%; background:var(--navy); color:#fff; border:none; border-radius:14px; padding:15px; font-weight:700; font-size:1rem; transition:background .2s ease; }
         .submit-btn:hover{ background:var(--navy-light); }
@@ -316,6 +349,12 @@
                     <div class="stat"><div class="num" id="stat-categories">0</div><div class="lbl">Trades covered</div></div>
                     <div class="stat"><div class="num">₹0</div><div class="lbl">Charged to residents</div></div>
                 </div>
+            </div>
+        </section>
+
+        <section id="banner-ad-section" style="display:none; padding:28px 0 0;">
+            <div class="container">
+                <div id="banner-ad-slot"></div>
             </div>
         </section>
 
@@ -465,7 +504,11 @@
         <div class="modal-content" style="max-width:460px;">
             <div class="modal-head"><h3>Post your business ad</h3><button onclick="closeModal('ad-modal')">✕</button></div>
             <form id="ad-form" onsubmit="submitAd(event)" class="modal-body">
-                <p id="ad-price-note" class="note-box"></p>
+                <div class="field">
+                    <label>Choose your ad plan</label>
+                    <div id="ad-plan-options"></div>
+                    <p id="ad-plan-empty" style="display:none; font-size:.82rem; color:var(--ink-soft);">No ad plans are available right now — please check back later.</p>
+                </div>
                 <div class="field"><label>Business name</label><input id="ad-name" required></div>
                 <div class="field"><label>Short description</label><textarea id="ad-desc" rows="2" required placeholder="e.g. Fresh bakery items daily, home delivery available"></textarea></div>
                 <div class="field"><label>Icon / emoji (optional)</label><input id="ad-icon" placeholder="📢"></div>
@@ -509,13 +552,6 @@
         </div>
     </div>
 
-    <div id="ad-detail-modal" class="modal-overlay">
-        <div class="modal-content" style="max-width:520px;">
-            <div class="modal-head"><h3>Ad details</h3><button onclick="closeModal('ad-detail-modal')">✕</button></div>
-            <div class="modal-body" id="ad-detail-body"></div>
-        </div>
-    </div>
-
     <div id="admin-panel" class="admin-shell">
         <div class="admin-top">
             <div class="admin-top-inner">
@@ -527,6 +563,7 @@
                 <button class="tab-btn" onclick="switchAdminTab('providers')">Providers</button>
                 <button class="tab-btn" onclick="switchAdminTab('categories')">Categories</button>
                 <button class="tab-btn" onclick="switchAdminTab('ads')">Ads</button>
+                <button class="tab-btn" onclick="switchAdminTab('adplans')">Ad Plans &amp; Pricing</button>
                 <button class="tab-btn" onclick="switchAdminTab('content')">Site Content</button>
             </div>
         </div>
@@ -534,6 +571,8 @@
     </div>
 
     <a class="fab" id="fab-help" href="#" onclick="return openInfo('contact')">💬 Need help?</a>
+
+    <div id="popup-ad-overlay" class="popup-ad-overlay"></div>
 
     <div class="toast-wrap" id="toast-container"></div>
 
@@ -653,18 +692,35 @@
             </div>`).join('');
     }
 
+    let bannerAdsList = [];
+    let bannerRotateIndex = 0;
+    let bannerRotateTimer = null;
+
     async function loadAds() {
         const { ads } = await api('/ads');
+        const directoryAds = ads.filter(a => (a.placement || 'directory') === 'directory');
+        const banner = ads.filter(a => a.placement === 'banner');
+        const popups = ads.filter(a => a.placement === 'popup');
+
+        renderDirectoryAds(directoryAds);
+        renderBannerAds(banner);
+        maybeShowPopupAd(popups);
+    }
+
+    function renderDirectoryAds(ads) {
         const container = document.getElementById('ads-container');
         const empty = document.getElementById('ads-empty');
         if (!ads.length) { container.innerHTML = ''; empty.style.display = 'block'; return; }
         empty.style.display = 'none';
-        container.innerHTML = ads.map(a => {
-            const waNumber = a.whatsapp || a.phone;
-            // Primary click target: prefer the business's own link, then WhatsApp, then a plain call.
-            const primaryHref = a.website_url ? a.website_url : (waNumber ? waHref(waNumber) : telHref(a.phone));
-            const primaryNewTab = !!a.website_url || !!waNumber;
-            return `
+        container.innerHTML = ads.map(a => adCardHtml(a)).join('');
+    }
+
+    function adCardHtml(a) {
+        const waNumber = a.whatsapp || a.phone;
+        // Primary click target: prefer the business's own link, then WhatsApp, then a plain call.
+        const primaryHref = a.website_url ? a.website_url : (waNumber ? waHref(waNumber) : telHref(a.phone));
+        const primaryNewTab = !!a.website_url || !!waNumber;
+        return `
             <div class="ad-card" style="${a.image_data ? 'padding-top:0;' : ''} cursor:pointer;" onclick="openAdLink('${escapeAttr(primaryHref)}', ${primaryNewTab})">
                 <div class="ad-ribbon">AD</div>
                 ${a.image_data ? `<img src="${a.image_data}" style="width:calc(100% + 44px); margin:0 -22px 14px; display:block; height:120px; object-fit:cover; border-radius:18px 18px 0 0;">` : ''}
@@ -679,7 +735,89 @@
                     ${a.website_url ? `<a href="${a.website_url}" target="_blank" onclick="event.stopPropagation()" style="display:block; text-align:center; margin-top:8px; font-size:.82rem; font-weight:600; color:var(--river);">Visit ${a.website_url.replace(/^https?:\/\//,'').replace(/\/$/,'')} →</a>` : ''}
                 </div>
             </div>`;
-        }).join('');
+    }
+
+    // Homepage banner: shows one ad at a time. With more than one live banner
+    // ad, it auto-rotates every 6 seconds with dots — so the homepage never
+    // gets crowded no matter how many banner ads are approved at once.
+    function renderBannerAds(ads) {
+        bannerAdsList = ads;
+        bannerRotateIndex = 0;
+        clearInterval(bannerRotateTimer);
+        const section = document.getElementById('banner-ad-section');
+        if (!ads.length) { section.style.display = 'none'; return; }
+        section.style.display = 'block';
+        paintBannerAd();
+        if (ads.length > 1) {
+            bannerRotateTimer = setInterval(() => {
+                bannerRotateIndex = (bannerRotateIndex + 1) % bannerAdsList.length;
+                paintBannerAd();
+            }, 6000);
+        }
+    }
+    function paintBannerAd() {
+        const a = bannerAdsList[bannerRotateIndex];
+        if (!a) return;
+        const waNumber = a.whatsapp || a.phone;
+        const primaryHref = a.website_url ? a.website_url : (waNumber ? waHref(waNumber) : telHref(a.phone));
+        const primaryNewTab = !!a.website_url || !!waNumber;
+        const dots = bannerAdsList.length > 1
+            ? `<div class="banner-dots">${bannerAdsList.map((_, i) => `<span class="${i===bannerRotateIndex?'active':''}" onclick="event.stopPropagation(); jumpToBannerAd(${i})"></span>`).join('')}</div>`
+            : '';
+        document.getElementById('banner-ad-slot').innerHTML = `
+            <div class="banner-ad" onclick="openAdLink('${escapeAttr(primaryHref)}', ${primaryNewTab})">
+                ${a.image_data ? `<img src="${a.image_data}">` : `<div class="banner-ad-icon" style="font-size:2.4rem;">${a.icon || '📢'}</div>`}
+                <div class="banner-body">
+                    <div class="banner-tag">Sponsored</div>
+                    <h3>${a.business_name}</h3>
+                    <p>${a.description || ''}</p>
+                </div>
+            </div>
+            ${dots}`;
+    }
+    function jumpToBannerAd(i) {
+        bannerRotateIndex = i;
+        paintBannerAd();
+        clearInterval(bannerRotateTimer);
+        if (bannerAdsList.length > 1) {
+            bannerRotateTimer = setInterval(() => {
+                bannerRotateIndex = (bannerRotateIndex + 1) % bannerAdsList.length;
+                paintBannerAd();
+            }, 6000);
+        }
+    }
+
+    // Popup ad: at most one shown per visitor per browsing session (never
+    // stacks multiple popups on a visitor), chosen at random if several are live.
+    function maybeShowPopupAd(ads) {
+        if (!ads.length) return;
+        if (sessionStorage.getItem('farasdanga_popup_shown')) return;
+        const a = ads[Math.floor(Math.random() * ads.length)];
+        setTimeout(() => {
+            const waNumber = a.whatsapp || a.phone;
+            const primaryHref = a.website_url ? a.website_url : (waNumber ? waHref(waNumber) : telHref(a.phone));
+            const primaryNewTab = !!a.website_url || !!waNumber;
+            document.getElementById('popup-ad-overlay').innerHTML = `
+                <div class="popup-ad-card">
+                    <button class="popup-ad-close" onclick="closePopupAd()">✕</button>
+                    ${a.image_data ? `<img src="${a.image_data}">` : ''}
+                    <div class="popup-ad-body">
+                        <div class="banner-tag" style="color:var(--terracotta); font-size:.68rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase;">Sponsored</div>
+                        <h3 style="font-family:'Fraunces',serif; margin:4px 0 8px; color:var(--navy);">${a.icon || '📢'} ${a.business_name}</h3>
+                        <p style="color:var(--ink-soft); font-size:.9rem; margin:0 0 16px;">${a.description || ''}</p>
+                        <div style="display:grid; grid-template-columns:${waNumber ? '1fr 1fr' : '1fr'}; gap:8px;">
+                            <a href="${telHref(a.phone)}" class="call-btn" style="text-decoration:none;">📞 Call</a>
+                            ${waNumber ? `<a href="${waHref(waNumber)}" target="_blank" class="wa-btn" style="text-decoration:none; text-align:center; padding:12px; border-radius:12px;">WhatsApp</a>` : ''}
+                        </div>
+                        ${a.website_url ? `<a href="${a.website_url}" target="_blank" style="display:block; text-align:center; margin-top:10px; font-size:.82rem; font-weight:600; color:var(--river);">Visit their page →</a>` : ''}
+                    </div>
+                </div>`;
+            document.getElementById('popup-ad-overlay').classList.add('active');
+            sessionStorage.setItem('farasdanga_popup_shown', '1');
+        }, 3000);
+    }
+    function closePopupAd() {
+        document.getElementById('popup-ad-overlay').classList.remove('active');
     }
     function escapeAttr(str) { return (str || '').replace(/'/g, "&#39;"); }
     function openAdLink(href, newTab) {
@@ -714,11 +852,44 @@
 
     let adImageDataUrl = null;
 
-    function openAdModal() {
+    let selectedPlanId = null;
+    let adPlansCache = [];
+    const PLACEMENT_LABEL = { directory: 'Directory listing', banner: 'Homepage banner', popup: 'Popup' };
+
+    async function openAdModal() {
         document.getElementById('ad-form').reset();
         clearAdImage();
-        document.getElementById('ad-price-note').textContent = `Ad price: ₹${SETTINGS.ad_price_rupees || 499} for ${SETTINGS.ad_duration_days || 30} days, reviewed before going live.`;
+        selectedPlanId = null;
         openModal('ad-modal');
+        const wrap = document.getElementById('ad-plan-options');
+        wrap.innerHTML = '<p style="font-size:.85rem; color:var(--ink-soft);">Loading plans…</p>';
+        try {
+            const { plans } = await api('/ad-plans');
+            adPlansCache = plans;
+            if (!plans.length) {
+                wrap.innerHTML = '';
+                document.getElementById('ad-plan-empty').style.display = 'block';
+                return;
+            }
+            document.getElementById('ad-plan-empty').style.display = 'none';
+            wrap.innerHTML = plans.map(p => `
+                <div class="plan-option" id="plan-opt-${p.id}" onclick="selectAdPlan(${p.id})">
+                    <div>
+                        <div class="plan-name">${p.name}</div>
+                        <div class="plan-meta">${PLACEMENT_LABEL[p.placement] || p.placement} · ${p.duration_days} days</div>
+                    </div>
+                    <div class="plan-price">₹${p.price_rupees}</div>
+                </div>`).join('');
+            selectAdPlan(plans[0].id);
+        } catch (err) {
+            wrap.innerHTML = `<p style="font-size:.85rem; color:#C0392B;">Could not load ad plans: ${err.message}</p>`;
+        }
+    }
+    function selectAdPlan(id) {
+        selectedPlanId = id;
+        document.querySelectorAll('.plan-option').forEach(el => el.classList.remove('selected'));
+        const el = document.getElementById('plan-opt-' + id);
+        if (el) el.classList.add('selected');
     }
 
     function clearAdImage() {
@@ -757,10 +928,12 @@
 
     async function submitAd(e) {
         e.preventDefault();
+        if (!selectedPlanId) { toast('Please choose an ad plan.', 'error'); return; }
         const btn = document.getElementById('ad-submit-btn');
         btn.disabled = true; btn.textContent = 'Preparing payment...';
         try {
             const order = await api('/ads/create-order', { method: 'POST', body: JSON.stringify({
+                planId: selectedPlanId,
                 businessName: document.getElementById('ad-name').value.trim(),
                 description: document.getElementById('ad-desc').value.trim(),
                 icon: document.getElementById('ad-icon').value.trim(),
@@ -828,7 +1001,7 @@
 
     async function switchAdminTab(tab) {
         document.querySelectorAll('#admin-tabs .tab-btn').forEach(b => b.classList.remove('active'));
-        const idx = ['dashboard','providers','categories','ads','content'].indexOf(tab);
+        const idx = ['dashboard','providers','categories','ads','adplans','content'].indexOf(tab);
         document.querySelectorAll('#admin-tabs .tab-btn')[idx].classList.add('active');
         const c = document.getElementById('admin-content');
         if (tab === 'dashboard') {
@@ -849,6 +1022,9 @@
         } else if (tab === 'ads') {
             const { ads } = await api('/admin/ads');
             c.innerHTML = renderAdminAds(ads);
+        } else if (tab === 'adplans') {
+            const { plans } = await api('/admin/ad-plans');
+            c.innerHTML = renderAdminAdPlans(plans);
         } else if (tab === 'content') {
             const { settings } = await api('/settings');
             c.innerHTML = renderAdminContent(settings);
@@ -953,13 +1129,14 @@
         window._adsCache = ads;
         const badge = { pending_payment: 'pill-grey', pending_review: 'pill-amber', approved: 'pill-green', rejected: 'pill-red', expired: 'pill-grey' };
         const refundBadge = { refunded: 'pill-green', failed: 'pill-red', pending: 'pill-amber' };
+        const placementLabel = { directory: 'Directory listing', banner: 'Homepage banner', popup: 'Popup' };
         const rows = ads.map(a => `
             <div class="admin-panel-card" style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px;">
                 <div style="display:flex; gap:12px; align-items:flex-start; cursor:pointer;" onclick="openAdDetail(${a.id})">
                     ${a.image_data ? `<img src="${a.image_data}" style="width:64px; height:64px; object-fit:cover; border-radius:10px; border:1px solid var(--line); flex-shrink:0;">` : ''}
                     <div>
-                        <p style="font-weight:700; margin:0 0 4px; color:var(--navy);">${a.icon || '📢'} ${a.business_name}</p>
-                        <p style="font-size:.85rem; color:var(--ink-soft); margin:0;">${a.phone} · ₹${(a.amount/100).toFixed(0)} · ${new Date(a.created_at).toLocaleDateString()}</p>
+                        <p style="font-weight:700; margin:0 0 4px; color:var(--navy);">${a.icon || '📢'} ${a.business_name} <span style="font-weight:500; color:var(--ink-soft); font-size:.78rem;">· ${placementLabel[a.placement] || a.placement || 'directory'}</span></p>
+                        <p style="font-size:.85rem; color:var(--ink-soft); margin:0;">${a.phone} · ₹${(a.amount/100).toFixed(0)} · ${a.plan_name || ''} · ${new Date(a.created_at).toLocaleDateString()}</p>
                         <p style="font-size:.85rem; color:var(--ink-soft); margin:4px 0 0;">${(a.description || '').slice(0, 90)}${(a.description||'').length > 90 ? '…' : ''}</p>
                     </div>
                 </div>
@@ -971,7 +1148,10 @@
                     <button class="link-btn red" onclick="deleteAd(${a.id})">Delete</button>
                 </div>
             </div>`).join('');
-        return `<h3 style="font-family:'Fraunces',serif; margin:0 0 16px; color:var(--navy);">Business ads</h3>${rows || '<p style="color:var(--ink-soft);">No ads yet.</p>'}`;
+        return `
+            <h3 style="font-family:'Fraunces',serif; margin:0 0 16px; color:var(--navy);">Business ads</h3>
+            <div id="ad-detail-area"></div>
+            ${rows || '<p style="color:var(--ink-soft);">No ads yet.</p>'}`;
     }
     async function approveAd(id) { await api(`/admin/ads/${id}/approve`, { method: 'POST' }); switchAdminTab('ads'); loadAds(); toast('Ad approved — now live.'); }
     async function rejectAd(id) {
@@ -982,38 +1162,45 @@
     }
     async function deleteAd(id) { if (!confirm('Delete this ad?')) return; await api(`/admin/ads/${id}`, { method: 'DELETE' }); switchAdminTab('ads'); loadAds(); toast('Deleted.', 'info'); }
 
-    /* ---------- admin: ad detail / edit modal ---------- */
+    /* ---------- admin: ad detail / edit — rendered INLINE inside the Ads tab
+       (not a floating modal) so it can never appear anywhere but inside Admin ---------- */
     let adDetailImageOverride = undefined; // undefined = unchanged, null = removed, string = replaced
     function openAdDetail(id) {
         const a = window._adsCache.find(x => x.id === id);
         if (!a) return;
         adDetailImageOverride = undefined;
         const badge = { pending_payment: 'pill-grey', pending_review: 'pill-amber', approved: 'pill-green', rejected: 'pill-red', expired: 'pill-grey' };
-        document.getElementById('ad-detail-body').innerHTML = `
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
-                <span class="pill ${badge[a.status]||'pill-grey'}">${a.status.replace('_',' ')}</span>
-                <span style="font-size:.8rem; color:var(--ink-soft);">Paid ₹${(a.amount/100).toFixed(0)} · Submitted ${new Date(a.created_at).toLocaleString()}${a.expires_at ? ' · Live until ' + new Date(a.expires_at).toLocaleDateString() : ''}</span>
-            </div>
-            <div class="field">
-                <label>Banner image</label>
-                <div id="ad-detail-img-wrap">${a.image_data ? `<img id="ad-detail-img" src="${a.image_data}" style="width:100%; max-height:160px; object-fit:cover; border-radius:10px; border:1px solid var(--line); margin-bottom:6px;">` : '<p style="font-size:.82rem; color:var(--ink-soft);">No image on this ad.</p>'}</div>
-                <input type="file" accept="image/*" onchange="handleAdDetailImageSelect(event)">
-                ${a.image_data ? `<button type="button" onclick="removeAdDetailImage()" style="margin-top:6px; background:none; border:none; color:var(--terracotta); font-size:.8rem; font-weight:600;">Remove image</button>` : ''}
-            </div>
-            <div class="field"><label>Business name</label><input id="adf-name" value="${escapeAttr(a.business_name)}"></div>
-            <div class="field"><label>Description</label><textarea id="adf-desc" rows="2">${a.description || ''}</textarea></div>
-            <div class="field"><label>Icon / emoji</label><input id="adf-icon" value="${escapeAttr(a.icon || '')}" style="width:80px;"></div>
-            <div class="field"><label>Phone</label><input id="adf-phone" value="${escapeAttr(a.phone)}"></div>
-            <div class="field"><label>Email</label><input id="adf-email" value="${escapeAttr(a.email || '')}"></div>
-            <div class="field"><label>WhatsApp</label><input id="adf-whatsapp" value="${escapeAttr(a.whatsapp || '')}"></div>
-            <div class="field"><label>Website / profile link</label><input id="adf-website" value="${escapeAttr(a.website_url || '')}"></div>
-            ${a.status === 'rejected' ? `<p style="font-size:.82rem; color:var(--ink-soft);">Refund: ${a.refund_status || 'not applicable'}${a.razorpay_refund_id ? ' (' + a.razorpay_refund_id + ')' : ''}</p>` : ''}
-            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:18px;">
-                <button class="btn btn-primary" style="padding:11px 20px;" onclick="saveAdDetail(${a.id})">Save changes</button>
-                ${a.status === 'pending_review' ? `<button class="btn" style="background:var(--leaf); color:#fff; padding:11px 20px;" onclick="approveAd(${a.id}); closeModal('ad-detail-modal')">Approve</button><button class="btn" style="background:#fbe4e1; color:#B23A2E; padding:11px 20px;" onclick="rejectAd(${a.id}); closeModal('ad-detail-modal')">Reject &amp; refund</button>` : ''}
+        document.getElementById('ad-detail-area').innerHTML = `
+            <div class="admin-panel-card" style="border-color:var(--marigold); margin-bottom:18px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+                    <h4 style="font-family:'Fraunces',serif; margin:0; color:var(--navy);">Ad details — ${escapeAttr(a.business_name)}</h4>
+                    <button onclick="document.getElementById('ad-detail-area').innerHTML=''" style="background:none; border:none; font-size:1.2rem; color:var(--ink-soft);">✕</button>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+                    <span class="pill ${badge[a.status]||'pill-grey'}">${a.status.replace('_',' ')}</span>
+                    <span style="font-size:.8rem; color:var(--ink-soft);">Paid ₹${(a.amount/100).toFixed(0)} (${a.plan_name || 'legacy plan'}) · Submitted ${new Date(a.created_at).toLocaleString()}${a.expires_at ? ' · Live until ' + new Date(a.expires_at).toLocaleDateString() : ''}</span>
+                </div>
+                <div class="field">
+                    <label>Banner image</label>
+                    <div id="ad-detail-img-wrap">${a.image_data ? `<img id="ad-detail-img" src="${a.image_data}" style="width:100%; max-height:160px; object-fit:cover; border-radius:10px; border:1px solid var(--line); margin-bottom:6px;">` : '<p style="font-size:.82rem; color:var(--ink-soft);">No image on this ad.</p>'}</div>
+                    <input type="file" accept="image/*" onchange="handleAdDetailImageSelect(event)">
+                    ${a.image_data ? `<button type="button" onclick="removeAdDetailImage()" style="margin-top:6px; background:none; border:none; color:var(--terracotta); font-size:.8rem; font-weight:600;">Remove image</button>` : ''}
+                </div>
+                <div class="field"><label>Business name</label><input id="adf-name" value="${escapeAttr(a.business_name)}"></div>
+                <div class="field"><label>Description</label><textarea id="adf-desc" rows="2">${a.description || ''}</textarea></div>
+                <div class="field"><label>Icon / emoji</label><input id="adf-icon" value="${escapeAttr(a.icon || '')}" style="width:80px;"></div>
+                <div class="field"><label>Phone</label><input id="adf-phone" value="${escapeAttr(a.phone)}"></div>
+                <div class="field"><label>Email</label><input id="adf-email" value="${escapeAttr(a.email || '')}"></div>
+                <div class="field"><label>WhatsApp</label><input id="adf-whatsapp" value="${escapeAttr(a.whatsapp || '')}"></div>
+                <div class="field"><label>Website / profile link</label><input id="adf-website" value="${escapeAttr(a.website_url || '')}"></div>
+                ${a.status === 'rejected' ? `<p style="font-size:.82rem; color:var(--ink-soft);">Refund: ${a.refund_status || 'not applicable'}${a.razorpay_refund_id ? ' (' + a.razorpay_refund_id + ')' : ''}</p>` : ''}
+                <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:18px;">
+                    <button class="btn btn-primary" style="padding:11px 20px;" onclick="saveAdDetail(${a.id})">Save changes</button>
+                    ${a.status === 'pending_review' ? `<button class="btn" style="background:var(--leaf); color:#fff; padding:11px 20px;" onclick="approveAd(${a.id})">Approve</button><button class="btn" style="background:#fbe4e1; color:#B23A2E; padding:11px 20px;" onclick="rejectAd(${a.id})">Reject &amp; refund</button>` : ''}
+                </div>
             </div>
         `;
-        openModal('ad-detail-modal');
+        document.getElementById('ad-detail-area').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
     function handleAdDetailImageSelect(e) {
         const file = e.target.files[0];
@@ -1051,10 +1238,85 @@
         };
         if (adDetailImageOverride !== undefined) body.imageData = adDetailImageOverride;
         await api(`/admin/ads/${id}`, { method: 'PUT', body: JSON.stringify(body) });
-        closeModal('ad-detail-modal');
         switchAdminTab('ads');
         loadAds();
         toast('Ad updated.');
+    }
+
+    /* ---------- admin: ad plans & pricing ---------- */
+    function renderAdminAdPlans(plans) {
+        window._plansCache = plans;
+        const placementLabel = { directory: '📇 Directory listing', banner: '🖼️ Homepage banner', popup: '💬 Popup' };
+        const rows = plans.map(p => `
+            <div class="admin-panel-card" style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px; ${!p.active ? 'opacity:.55;' : ''}">
+                <div>
+                    <p style="font-weight:700; margin:0 0 4px; color:var(--navy);">${p.name} ${!p.active ? '<span class="pill pill-grey">inactive</span>' : ''}</p>
+                    <p style="font-size:.85rem; color:var(--ink-soft); margin:0;">${placementLabel[p.placement] || p.placement} · ${p.duration_days} days · ₹${p.price_rupees}</p>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button class="link-btn blue" onclick="openAdPlanForm(${p.id})">Edit</button>
+                    <button class="link-btn red" onclick="deleteAdPlan(${p.id})">Delete</button>
+                </div>
+            </div>`).join('');
+        return `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <h3 style="font-family:'Fraunces',serif; margin:0; color:var(--navy);">Ad Plans &amp; Pricing</h3>
+                <button class="btn btn-primary" style="padding:9px 18px; font-size:.87rem;" onclick="openAdPlanForm()">+ Add plan</button>
+            </div>
+            <p style="font-size:.85rem; color:var(--ink-soft); margin:0 0 18px;">
+                These are the options businesses choose from when posting an ad. <strong>Directory listing</strong> shows in the regular ad grid on the homepage.
+                <strong>Homepage banner</strong> is a large featured spot near the top of the page — if more than one is live, they rotate automatically so the page never gets crowded.
+                <strong>Popup</strong> shows as a one-time popup to each visitor per browsing session — if more than one is live, one is picked at random per visitor, so people are never shown more than one popup at a time.
+            </p>
+            <div id="ad-plan-form-area"></div>
+            ${rows || '<p style="color:var(--ink-soft);">No plans yet — add one so businesses have something to choose from.</p>'}
+        `;
+    }
+    function openAdPlanForm(id) {
+        const p = id ? window._plansCache.find(x => x.id === id) : null;
+        document.getElementById('ad-plan-form-area').innerHTML = `
+            <div class="admin-panel-card" style="border-color:var(--marigold); margin-bottom:16px;">
+                <h4 style="font-family:'Fraunces',serif; margin:0 0 12px; color:var(--navy);">${p ? 'Edit plan' : 'Add new plan'}</h4>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <input id="apf-name" placeholder="Plan name (e.g. Directory — 30 days)" value="${p ? escapeAttr(p.name) : ''}" style="grid-column:1/-1; padding:10px 12px; border:1px solid var(--line); border-radius:10px;">
+                    <select id="apf-placement" style="padding:10px 12px; border:1px solid var(--line); border-radius:10px;">
+                        <option value="directory" ${p && p.placement==='directory'?'selected':''}>Directory listing</option>
+                        <option value="banner" ${p && p.placement==='banner'?'selected':''}>Homepage banner</option>
+                        <option value="popup" ${p && p.placement==='popup'?'selected':''}>Popup</option>
+                    </select>
+                    <select id="apf-active" style="padding:10px 12px; border:1px solid var(--line); border-radius:10px;">
+                        <option value="1" ${!p || p.active ? 'selected':''}>Active (offered to businesses)</option>
+                        <option value="0" ${p && !p.active ? 'selected':''}>Inactive (hidden)</option>
+                    </select>
+                    <input id="apf-duration" type="number" min="1" placeholder="Duration (days)" value="${p ? p.duration_days : ''}" style="padding:10px 12px; border:1px solid var(--line); border-radius:10px;">
+                    <input id="apf-price" type="number" min="1" placeholder="Price (₹)" value="${p ? p.price_rupees : ''}" style="padding:10px 12px; border:1px solid var(--line); border-radius:10px;">
+                </div>
+                <div style="display:flex; gap:8px; margin-top:14px;">
+                    <button class="btn btn-primary" style="padding:9px 18px; font-size:.87rem;" onclick="saveAdPlan(${p ? p.id : 'null'})">Save</button>
+                    <button class="btn btn-outline" style="padding:9px 18px; font-size:.87rem;" onclick="document.getElementById('ad-plan-form-area').innerHTML=''">Cancel</button>
+                </div>
+            </div>`;
+    }
+    async function saveAdPlan(id) {
+        const body = {
+            id: id || undefined,
+            name: document.getElementById('apf-name').value.trim(),
+            placement: document.getElementById('apf-placement').value,
+            durationDays: Number(document.getElementById('apf-duration').value),
+            priceRupees: Number(document.getElementById('apf-price').value),
+            active: document.getElementById('apf-active').value === '1'
+        };
+        if (!body.name || !body.durationDays || !body.priceRupees) { toast('Name, duration and price are required.', 'error'); return; }
+        await api('/admin/ad-plans', { method: 'POST', body: JSON.stringify(body) });
+        document.getElementById('ad-plan-form-area').innerHTML = '';
+        switchAdminTab('adplans');
+        toast('Plan saved.');
+    }
+    async function deleteAdPlan(id) {
+        if (!confirm('Delete this plan? Businesses will no longer be able to select it (existing ads on it are unaffected).')) return;
+        await api(`/admin/ad-plans/${id}`, { method: 'DELETE' });
+        switchAdminTab('adplans');
+        toast('Plan deleted.', 'info');
     }
 
     function renderAdminContent(settings) {
