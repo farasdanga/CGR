@@ -22,4 +22,4 @@ database_id = "64bf5903-2047-4a62-afa7-eb261897c18c"
 #   RAZORPAY_KEY_SECRET     from Razorpay dashboard
 
 [vars]
-SITE_URL = "https://farasdanga.cgrhelp.workers.dev/"
+SITE_URL = "https://hello.farashdanga.workers.dev/"
